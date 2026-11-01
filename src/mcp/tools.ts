@@ -1091,16 +1091,22 @@ function resolveIssue(db: Database): DomainTool {
     description:
       'Record the conclusion of investigating a crawl issue (the `issue` table) and move it out of "open". ' +
       'Sets a verdict, a human-readable resolution (your findings and the PROPOSED fix - do not apply the fix ' +
-      'here; a human reviews it), and a status: "triaged" (default; awaiting human review), "resolved" (data ' +
-      'confirmed correct, or a fix you were asked to apply now passes) or "ignored" (dismissed). Call it once ' +
-      'when you finish triaging an issue. This is the only write the agent tools allow.',
+      'here; a human reviews it), and a status: "triaged" (default) when you propose a change to the crawler, ' +
+      'its settings or its expectations - the site is then on hold, no crawl of it starts until a person ' +
+      'resolves or ignores the issue; "resolved" when nothing needs changing (data confirmed correct, a ' +
+      'transient failure, stale data a re-crawl refreshes, or a fix you were asked to apply now passes); ' +
+      '"ignored" (dismissed). Call it once when you finish triaging an issue. This is the only write the agent ' +
+      'tools allow.',
     schema: {
       issue: z.number().int().describe('The issue id, from the [jscrawl] escalation message'),
       verdict: z.enum(VERDICTS).describe(`One of: ${VERDICTS.join(', ')}`),
       resolution: z
         .string()
         .describe('Findings, evidence, and the proposed fix (e.g. the change to make in crawlers/<site>.ts). Not applied.'),
-      status: z.enum(ISSUE_STATUSES).optional().describe('"triaged" (default), "resolved" or "ignored"'),
+      status: z
+        .enum(ISSUE_STATUSES)
+        .optional()
+        .describe('"triaged" (default; a proposed change puts the site on hold), "resolved" (nothing to change) or "ignored"'),
     },
     async execute({ issue, verdict, resolution, status = 'triaged' }, ctx) {
       ctx.signal?.throwIfAborted();

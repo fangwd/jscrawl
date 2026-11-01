@@ -211,6 +211,31 @@ test('resetUrls of every site, and startIdle starts only the sites with idle url
   expect((await supervisor.startIdle([siteId, Number(other.id)])).map((s) => s.siteId)).toEqual([Number(other.id)]);
 });
 
+test('a site with a verdict awaiting review is on hold until a person settles it', async () => {
+  await db.query("update crawler set refresh_minutes = 60 where name = 'sup'");
+  await db.query(
+    `insert into crawler_run (site_id, kind, status, started_at, stopped_at) values (?, 'crawl', 'stopped', now() - interval '2 hours', now())`,
+    siteId
+  );
+  await db.query('update url set status = 0');
+  const [issue] = await db.query<any[]>(
+    "insert into issue (url_id, kind, detail, status, verdict) values (?, 'validation', 'bad price', 'triaged', 'extractor_bug') returning id",
+    urlId
+  );
+  expect((await supervisor.status())[0]).toMatchObject({ running: false, hold: 1 });
+  await expect(supervisor.start(siteId)).rejects.toMatchObject({ status: 409, message: expect.stringContaining('on hold') });
+  await expect(supervisor.restart(siteId)).rejects.toMatchObject({ status: 409 });
+  expect(await supervisor.idleSites([siteId])).toEqual([]);
+  expect(await supervisor.startIdle([siteId])).toEqual([]);
+  expect(await supervisor.refreshDue()).toEqual([]);
+
+  await db.query("update issue set status = 'resolved' where id = ?", issue.id);
+  expect((await supervisor.status())[0]).toMatchObject({ hold: 0 });
+  const [started] = await supervisor.refreshDue();
+  expect(started.siteId).toBe(siteId);
+  await childUp(started.runId);
+});
+
 test('stoppedSites names the sites whose last crawl ended', async () => {
   expect(await supervisor.stoppedSites()).toEqual([]);
   const runId = await supervisor.start(siteId);

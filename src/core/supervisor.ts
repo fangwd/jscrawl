@@ -39,7 +39,14 @@ export interface SiteCrawlStatus {
   stoppedAt: Date | null;
   /** Minutes between scheduled re-crawls; null when only by hand. */
   refreshMinutes: number | null;
+  /** Verdicts awaiting a person's review; while there are any, no crawl of the site starts. */
+  hold: number;
 }
+
+/** Site `s`'s verdicts awaiting a person's review: its triaged issues of their own, not copies. */
+const HOLD = `(select count(*) from issue i join url iu on iu.id = i.url_id
+  where iu.site_id = s.id and i.status = 'triaged' and i.same_as is null)`;
+const ON_HOLD = `${HOLD} > 0`;
 
 function processAlive(pid: number): boolean {
   try {
@@ -86,7 +93,7 @@ export class Supervisor {
   async status(): Promise<SiteCrawlStatus[]> {
     const rows = await this.db.query<any[]>(
       `select s.id as site_id, s.name as site_name, r.id as run_id, r.pid, r.status, r.started_at, r.stopped_at,
-              c.refresh_minutes
+              c.refresh_minutes, ${HOLD} as hold
          from site s
          left join crawler c on c.id = s.crawler_id
          left join crawler_run r on r.id = (
@@ -107,6 +114,7 @@ export class Supervisor {
         startedAt: r.started_at ?? null,
         stoppedAt: r.stopped_at ?? null,
         refreshMinutes: r.refresh_minutes ?? null,
+        hold: Number(r.hold),
       };
     });
   }
@@ -177,6 +185,7 @@ export class Supervisor {
     if (this.children.has(site.id)) {
       throw new SupervisorError(409, `a crawl for ${site.name} is already running`);
     }
+    await this.ensureNotHeld(site);
     const argv =
       this.options.crawlCommand?.(site.name) ??
       [process.execPath, '-r', 'ts-node/register', 'src/cli.ts', '--crawl', site.name];
@@ -191,6 +200,7 @@ export class Supervisor {
   }
 
   async restart(siteId: number): Promise<number> {
+    await this.ensureNotHeld(await this.site(siteId));
     const child = this.children.get(siteId);
     if (child) await this.kill(child);
     return this.start(siteId);
@@ -253,14 +263,14 @@ export class Supervisor {
       .map((site) => site.siteId);
   }
 
-  /** Those of these sites with idle urls and no crawl running, and how many urls each has idle: what startIdle starts. */
+  /** Those of these sites with idle urls, not on hold and no crawl running, and how many urls each has idle: what startIdle starts. */
   async idleSites(siteIds: number[]): Promise<{ siteId: number; urls: number }[]> {
     if (siteIds.length === 0) return [];
     const wanted = new Set(siteIds);
     const idle = await this.db.query<{ site_id: number; n: string }[]>(
       `select u.site_id, count(*) as n
          from url u join site s on s.id = u.site_id
-        where u.status = 0
+        where u.status = 0 and not ${ON_HOLD}
         group by u.site_id, s.name
         order by s.name`
     );
@@ -272,13 +282,14 @@ export class Supervisor {
   /**
    * Re-crawls every site whose refresh interval has passed since its last crawl
    * started: its urls are reset as by a recrawl and its crawl started. A site
-   * never crawled is not scheduled - its first crawl is someone's decision - and
-   * one still crawling waits for its run to end.
+   * never crawled is not scheduled - its first crawl is someone's decision - one
+   * still crawling waits for its run to end, and one on hold waits for its review.
    */
   async refreshDue(): Promise<{ siteId: number; runId: number }[]> {
     const due = await this.db.query<{ id: number }[]>(
       `select s.id from site s join crawler c on c.id = s.crawler_id
         where c.refresh_minutes is not null
+          and not ${ON_HOLD}
           and exists (select 1 from crawler_run r where r.site_id = s.id and r.kind = 'crawl')
           and not exists (
             select 1 from crawler_run r where r.site_id = s.id and r.kind = 'crawl'
@@ -331,6 +342,18 @@ export class Supervisor {
 
   private async site(siteId: number): Promise<{ id: number; name: string }> {
     return this.resolveSite(siteId);
+  }
+
+  /** A site with verdicts awaiting review is on hold: resolving or ignoring them lifts it. */
+  private async ensureNotHeld(site: { id: number; name: string }): Promise<void> {
+    const [row] = await this.db.query<{ hold: string }[]>(`select ${HOLD} as hold from site s where s.id = ?`, site.id);
+    const hold = Number(row.hold);
+    if (hold > 0) {
+      throw new SupervisorError(
+        409,
+        `${site.name} is on hold: ${hold} verdict${hold === 1 ? '' : 's'} awaiting review; resolve or ignore them to crawl again`
+      );
+    }
   }
 
   private async spawn(site: { id: number; name: string }, kind: string, argv: string[]): Promise<number> {

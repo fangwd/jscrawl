@@ -257,6 +257,11 @@ jscrawl server: every 5 minutes it resets and restarts each site whose interval
 has passed since its last crawl started. A site never crawled is left alone - its
 first crawl is started by hand - and one still crawling waits for its run to end.
 
+A site with a `triaged` issue of its own - a verdict with a proposed change,
+awaiting a person's review - is on hold: no crawl of it starts, scheduled or by
+hand (`GET /api/crawlers` reports the count as `hold`, a start answers 409),
+until the issue is resolved or ignored. A crawl already running finishes.
+
 What a scrape handler fetches besides its page (`this.fetch`: an API, a sitemap)
 goes out at the same pace as the pages - the site's `waitTime`, or robots.txt's
 `Crawl-delay` when longer, counted from the previous request - and is saved
