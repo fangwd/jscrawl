@@ -382,8 +382,8 @@ npm --prefix ui ci && npm --prefix ui run build
 cargo build --release
 ```
 
-In `~/apps/spidermake/.env`: the `AI_*` model settings, `SPIDERMAKE_API_TOKEN`
-(`openssl rand -hex 32`) and `JSCRAWL_API_TOKEN` - the same value as jscrawl's.
+In `~/apps/spidermake/.env`: the `AI_*` model settings and `JSCRAWL_API_TOKEN` -
+the same value as jscrawl's.
 spidermake finds jscrawl's checkout at `../jscrawl` and its server at
 `http://127.0.0.1:3120`. Add the people who sign in:
 
