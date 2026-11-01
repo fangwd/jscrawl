@@ -1,0 +1,17 @@
+{
+  "database": {
+    "dialect": "postgres",
+    "connection": {
+      "host": "127.0.0.1",
+      "port": 5434,
+      "user": "admin",
+      "password": "secret",
+      "database": "jscrawl_e2e",
+      "connectionLimit": 10
+    }
+  },
+  "store": {
+    "html": "data/e2e/html",
+    "images": "data/e2e/images"
+  }
+}

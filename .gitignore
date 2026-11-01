@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Site crawlers: a separate git repository (see crawlers/README.md).
+crawlers/
+
+# Build output: tsc (build/src, build/crawlers) and the rsbuild SPA (build/web).
+build/
+
+# Runtime state: saved pages (data/html, data/images), crawl logs (data/logs),
+# and the e2e store. bin/reset.sh clears these deliberately.
+data/
+
+# Spill files a mason run in this checkout leaves (large tool outputs).
+.mason/
+
+# Secrets: the API tokens. Commit .env.example,
+# never a real environment file.
+.env
+.env.*
+!.env.example
+
+# winston's root log file (src/core/logger.ts)
+*.log
+
+# Test and tooling artifacts
+coverage/
+.playwright-mcp/
+.claude/scheduled_tasks.lock
+
+# macOS
+.DS_Store

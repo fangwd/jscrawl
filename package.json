@@ -1,0 +1,67 @@
+{
+  "name": "jscrawl",
+  "version": "0.1.0",
+  "scripts": {
+    "jscrawl:start": "bin/start.sh",
+    "build": "tsc -D",
+    "jscrawl": "ts-node src/cli.ts",
+    "jscrawl:populate": "ts-node src/cli.ts --populate",
+    "watch": "tsc --watch",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "reset": "bin/reset.sh",
+    "reset:test": "bin/reset.sh --test --yes",
+    "db:migrate": "ts-node src/migrate.ts",
+    "serve": "node -r ts-node/register src/server.ts",
+    "mcp": "ts-node src/mcp/server.ts"
+  },
+  "author": "Weidong Fang",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "fflate": "^0.8.3",
+    "gumbo-html": "^3.4.0",
+    "pg": "^8.23.1",
+    "puppeteer": "^25.12.0",
+    "robots-parser": "^3.0.1",
+    "sqlex": "^5.0.0",
+    "winston": "^3.19.0",
+    "xml2js": "^0.6.2",
+    "yareq": "^2.0.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.0",
+    "@types/xml2js": "^0.4.14",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.test.json"
+        }
+      ]
+    },
+    "testRegex": "/test/.*\\.test\\.ts$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
+    "collectCoverage": false,
+    "collectCoverageFrom": [
+      "src/**/*.ts"
+    ],
+    "verbose": true,
+    "maxWorkers": 1
+  }
+}

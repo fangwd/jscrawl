@@ -1,0 +1,5444 @@
+{
+  "version": 4,
+  "components": [
+    {
+      "id": "ct-shop-product-card-hover",
+      "name": "Product Card • Hover Image",
+      "description": "A shop product as a card linking to its page: its photo, swapped for its second photo on hover, a Sale badge while it's on sale, name, short description, price and was price.",
+      "element": "a",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 2059,
+          "name": "itemLink",
+          "type": "link",
+          "defaultValue": "",
+          "displayName": "Link",
+          "propertyCategory": "Settings",
+          "userFacing": false,
+          "shop": "url"
+        },
+        {
+          "reg": "productName",
+          "name": "productName",
+          "type": "string",
+          "defaultValue": "Classic Short Boot",
+          "displayName": "Name",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "name"
+        },
+        {
+          "reg": "productSummary",
+          "name": "productSummary",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Twin-face sheepskin with a light, cushioned sole."
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Summary",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "short_description"
+        },
+        {
+          "reg": "productPrice",
+          "name": "productPrice",
+          "type": "string",
+          "defaultValue": "$129.00",
+          "displayName": "Price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "price"
+        },
+        {
+          "reg": "productComparePrice",
+          "name": "productComparePrice",
+          "type": "string",
+          "defaultValue": "",
+          "displayName": "Compare-at price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "compare_at_price"
+        },
+        {
+          "reg": "productImage",
+          "name": "productImage",
+          "type": "image",
+          "defaultValue": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+          "displayName": "Image",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "media.0.url"
+        },
+        {
+          "reg": "productImageAlt",
+          "name": "productImageAlt",
+          "type": "image",
+          "defaultValue": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+          "displayName": "Second image",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "media.1.url"
+        }
+      ],
+      "attributes": {
+        "href": {
+          "mode": "prop",
+          "value": "itemLink"
+        }
+      },
+      "classNames": [
+        "stack",
+        "gap-element-small",
+        "shop-card-link"
+      ],
+      "children": {
+        "Media": {
+          "childType": "htmlNode",
+          "classNames": [
+            "shop-card-media"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Badge": {
+              "childType": "htmlNode",
+              "classNames": [
+                "shop-badge"
+              ],
+              "hidable": true,
+              "visible": true,
+              "element": "span",
+              "contentType": "container",
+              "children": {
+                "Label": {
+                  "childType": "htmlNode",
+                  "classNames": [],
+                  "element": "span",
+                  "contentType": "text",
+                  "textContent": {
+                    "mode": "static",
+                    "value": "Sale"
+                  },
+                  "order": 1
+                },
+                "Was Price": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "shop-visually-hidden"
+                  ],
+                  "element": "span",
+                  "contentType": "text",
+                  "textContent": {
+                    "mode": "prop",
+                    "value": "productComparePrice"
+                  },
+                  "order": 2
+                }
+              },
+              "order": 1
+            },
+            "Image": {
+              "childType": "component",
+              "componentId": "a42b3c83-0e26-4eb0-ace1-7b19cf84c8aa",
+              "propBindings": {
+                "imageSource": {
+                  "mode": "prop",
+                  "value": "productImage"
+                },
+                "aspectRatio": {
+                  "mode": "static",
+                  "value": "Portrait"
+                },
+                "mediaType": {
+                  "mode": "static",
+                  "value": "Image"
+                },
+                "mediaRadius": {
+                  "mode": "static",
+                  "value": "None"
+                }
+              },
+              "order": 2
+            },
+            "Hover Image": {
+              "childType": "htmlNode",
+              "classNames": [],
+              "attributes": {
+                "data-card-alt": {
+                  "mode": "static",
+                  "value": ""
+                },
+                "aria-hidden": {
+                  "mode": "static",
+                  "value": "true"
+                }
+              },
+              "hidable": true,
+              "visible": true,
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Image": {
+                  "childType": "component",
+                  "componentId": "a42b3c83-0e26-4eb0-ace1-7b19cf84c8aa",
+                  "propBindings": {
+                    "imageSource": {
+                      "mode": "prop",
+                      "value": "productImageAlt"
+                    },
+                    "aspectRatio": {
+                      "mode": "static",
+                      "value": "Portrait"
+                    },
+                    "mediaType": {
+                      "mode": "static",
+                      "value": "Image"
+                    },
+                    "mediaRadius": {
+                      "mode": "static",
+                      "value": "None"
+                    }
+                  },
+                  "order": 1
+                }
+              },
+              "order": 3
+            }
+          },
+          "order": 1
+        },
+        "Info": {
+          "childType": "htmlNode",
+          "classNames": [
+            "stack",
+            "gap-element-tiny"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Heading": {
+              "childType": "component",
+              "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+              "propBindings": {
+                "headingText": {
+                  "mode": "prop",
+                  "value": "productName"
+                },
+                "headingSize": {
+                  "mode": "static",
+                  "value": "H6"
+                },
+                "headingTag": {
+                  "mode": "static",
+                  "value": "H3"
+                },
+                "maxWidth": {
+                  "mode": "static",
+                  "value": "None"
+                }
+              },
+              "order": 1
+            },
+            "Summary": {
+              "childType": "component",
+              "componentId": "b2763258-9eb3-490d-8d99-47c2787fae27",
+              "propBindings": {
+                "paragraphText": {
+                  "mode": "prop",
+                  "value": "productSummary"
+                },
+                "paragraphSize": {
+                  "mode": "static",
+                  "value": "Small"
+                },
+                "textTruncate": {
+                  "mode": "static",
+                  "value": "1 Line"
+                },
+                "maxWidth": {
+                  "mode": "static",
+                  "value": "None"
+                }
+              },
+              "hidable": true,
+              "visible": true,
+              "order": 2
+            },
+            "Prices": {
+              "childType": "htmlNode",
+              "classNames": [
+                "row",
+                "gap-element-horizontal-small"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Price": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "text-style-regular"
+                  ],
+                  "element": "span",
+                  "contentType": "text",
+                  "textContent": {
+                    "mode": "prop",
+                    "value": "productPrice"
+                  },
+                  "order": 1
+                },
+                "Compare Price": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "text-style-small",
+                    "shop-compare"
+                  ],
+                  "hidable": true,
+                  "visible": true,
+                  "element": "s",
+                  "contentType": "text",
+                  "textContent": {
+                    "mode": "prop",
+                    "value": "productComparePrice"
+                  },
+                  "order": 2
+                }
+              },
+              "order": 3
+            }
+          },
+          "order": 2
+        }
+      }
+    },
+    {
+      "id": "ct-shop-product-card-quick-add",
+      "name": "Product Card • Quick Add",
+      "description": "A shop product as a card that buys in place: its photo on a soft well, name and price linking to its page, a short description, a picker per option and an add to cart button.",
+      "element": "article",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 2059,
+          "name": "itemLink",
+          "type": "link",
+          "defaultValue": "",
+          "displayName": "Link",
+          "propertyCategory": "Settings",
+          "userFacing": false,
+          "shop": "url"
+        },
+        {
+          "reg": "productName",
+          "name": "productName",
+          "type": "string",
+          "defaultValue": "Classic Short Boot",
+          "displayName": "Name",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "name"
+        },
+        {
+          "reg": "productSummary",
+          "name": "productSummary",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Twin-face sheepskin with a light, cushioned sole."
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Summary",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "short_description"
+        },
+        {
+          "reg": "productPrice",
+          "name": "productPrice",
+          "type": "string",
+          "defaultValue": "$129.00",
+          "displayName": "Price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "price"
+        },
+        {
+          "reg": "productComparePrice",
+          "name": "productComparePrice",
+          "type": "string",
+          "defaultValue": "",
+          "displayName": "Compare-at price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "compare_at_price"
+        },
+        {
+          "reg": "productImage",
+          "name": "productImage",
+          "type": "image",
+          "defaultValue": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+          "displayName": "Image",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "media.0.url"
+        },
+        {
+          "reg": "productSlug",
+          "name": "productSlug",
+          "type": "string",
+          "defaultValue": "classic-short-boot",
+          "displayName": "Slug",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "slug"
+        },
+        {
+          "name": "addLabel",
+          "type": "string",
+          "defaultValue": "Add to cart",
+          "displayName": "Add button",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "attributes": {
+        "data-commerce-product": {
+          "mode": "prop",
+          "value": "productSlug"
+        }
+      },
+      "classNames": [
+        "shop-quick-card"
+      ],
+      "children": {
+        "Link": {
+          "childType": "htmlNode",
+          "classNames": [
+            "stack",
+            "gap-element-small",
+            "shop-card-link"
+          ],
+          "attributes": {
+            "href": {
+              "mode": "prop",
+              "value": "itemLink"
+            }
+          },
+          "element": "a",
+          "contentType": "container",
+          "children": {
+            "Media": {
+              "childType": "htmlNode",
+              "classNames": [
+                "shop-card-media",
+                "shop-card-media-contain"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Badge": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "shop-badge"
+                  ],
+                  "hidable": true,
+                  "visible": true,
+                  "element": "span",
+                  "contentType": "container",
+                  "children": {
+                    "Label": {
+                      "childType": "htmlNode",
+                      "classNames": [],
+                      "element": "span",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "static",
+                        "value": "Sale"
+                      },
+                      "order": 1
+                    },
+                    "Was Price": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "shop-visually-hidden"
+                      ],
+                      "element": "span",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "prop",
+                        "value": "productComparePrice"
+                      },
+                      "order": 2
+                    }
+                  },
+                  "order": 1
+                },
+                "Image": {
+                  "childType": "component",
+                  "componentId": "a42b3c83-0e26-4eb0-ace1-7b19cf84c8aa",
+                  "propBindings": {
+                    "imageSource": {
+                      "mode": "prop",
+                      "value": "productImage"
+                    },
+                    "aspectRatio": {
+                      "mode": "static",
+                      "value": "Square"
+                    },
+                    "mediaType": {
+                      "mode": "static",
+                      "value": "Image"
+                    },
+                    "mediaRadius": {
+                      "mode": "static",
+                      "value": "None"
+                    },
+                    "imageFit": {
+                      "mode": "static",
+                      "value": "Contain"
+                    }
+                  },
+                  "order": 2
+                }
+              },
+              "order": 1
+            },
+            "Heading": {
+              "childType": "component",
+              "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+              "propBindings": {
+                "headingText": {
+                  "mode": "prop",
+                  "value": "productName"
+                },
+                "headingSize": {
+                  "mode": "static",
+                  "value": "H6"
+                },
+                "headingTag": {
+                  "mode": "static",
+                  "value": "H3"
+                },
+                "maxWidth": {
+                  "mode": "static",
+                  "value": "None"
+                }
+              },
+              "order": 2
+            }
+          },
+          "order": 1
+        },
+        "Prices": {
+          "childType": "htmlNode",
+          "classNames": [
+            "row",
+            "gap-element-horizontal-small"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Price": {
+              "childType": "htmlNode",
+              "classNames": [
+                "heading-style-h6"
+              ],
+              "element": "span",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "productPrice"
+              },
+              "order": 1
+            },
+            "Compare Price": {
+              "childType": "htmlNode",
+              "classNames": [
+                "text-style-small",
+                "shop-compare"
+              ],
+              "hidable": true,
+              "visible": true,
+              "element": "s",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "productComparePrice"
+              },
+              "order": 2
+            }
+          },
+          "order": 2
+        },
+        "Summary": {
+          "childType": "component",
+          "componentId": "b2763258-9eb3-490d-8d99-47c2787fae27",
+          "propBindings": {
+            "paragraphText": {
+              "mode": "prop",
+              "value": "productSummary"
+            },
+            "paragraphSize": {
+              "mode": "static",
+              "value": "Small"
+            },
+            "textTruncate": {
+              "mode": "static",
+              "value": "2 Lines"
+            },
+            "maxWidth": {
+              "mode": "static",
+              "value": "None"
+            }
+          },
+          "hidable": true,
+          "visible": true,
+          "order": 3
+        },
+        "Buy": {
+          "childType": "htmlNode",
+          "classNames": [
+            "shop-quick-buy"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Options": {
+              "childType": "htmlNode",
+              "classNames": [
+                "stack",
+                "gap-element-tiny"
+              ],
+              "attributes": {
+                "data-commerce-axes": {
+                  "mode": "static",
+                  "value": ""
+                }
+              },
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Axis": {
+                  "childType": "htmlNode",
+                  "classNames": [],
+                  "attributes": {
+                    "data-commerce-axis": {
+                      "mode": "static",
+                      "value": ""
+                    }
+                  },
+                  "element": "label",
+                  "contentType": "container",
+                  "children": {
+                    "Name": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "shop-visually-hidden"
+                      ],
+                      "attributes": {
+                        "data-commerce-axis-name": {
+                          "mode": "static",
+                          "value": ""
+                        }
+                      },
+                      "element": "span",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "static",
+                        "value": "Option"
+                      },
+                      "order": 1
+                    },
+                    "Select": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "input"
+                      ],
+                      "attributes": {
+                        "data-commerce-axis-select": {
+                          "mode": "static",
+                          "value": ""
+                        }
+                      },
+                      "element": "select",
+                      "contentType": "container",
+                      "children": {
+                        "Value": {
+                          "childType": "htmlNode",
+                          "classNames": [],
+                          "element": "option",
+                          "contentType": "text",
+                          "textContent": {
+                            "mode": "static",
+                            "value": "Choose an option"
+                          },
+                          "order": 1
+                        }
+                      },
+                      "order": 2
+                    }
+                  },
+                  "order": 1
+                }
+              },
+              "order": 1
+            },
+            "Add": {
+              "childType": "htmlNode",
+              "classNames": [
+                "button",
+                "button-small"
+              ],
+              "attributes": {
+                "type": {
+                  "mode": "static",
+                  "value": "button"
+                },
+                "data-commerce-add": {
+                  "mode": "static",
+                  "value": ""
+                }
+              },
+              "element": "button",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "addLabel"
+              },
+              "order": 2
+            }
+          },
+          "order": 4
+        }
+      }
+    },
+    {
+      "id": "ct-shop-product-card-compact",
+      "name": "Product Card • Compact",
+      "description": "A shop product in a single row for cross-sells: a small photo, name and price linking to its page, and an add button.",
+      "element": "article",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 2059,
+          "name": "itemLink",
+          "type": "link",
+          "defaultValue": "",
+          "displayName": "Link",
+          "propertyCategory": "Settings",
+          "userFacing": false,
+          "shop": "url"
+        },
+        {
+          "reg": "productName",
+          "name": "productName",
+          "type": "string",
+          "defaultValue": "Classic Short Boot",
+          "displayName": "Name",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "name"
+        },
+        {
+          "reg": "productPrice",
+          "name": "productPrice",
+          "type": "string",
+          "defaultValue": "$129.00",
+          "displayName": "Price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "price"
+        },
+        {
+          "reg": "productComparePrice",
+          "name": "productComparePrice",
+          "type": "string",
+          "defaultValue": "",
+          "displayName": "Compare-at price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "compare_at_price"
+        },
+        {
+          "reg": "productImage",
+          "name": "productImage",
+          "type": "image",
+          "defaultValue": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+          "displayName": "Image",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "media.0.url"
+        },
+        {
+          "reg": "productSlug",
+          "name": "productSlug",
+          "type": "string",
+          "defaultValue": "classic-short-boot",
+          "displayName": "Slug",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "slug"
+        },
+        {
+          "name": "addLabel",
+          "type": "string",
+          "defaultValue": "Add",
+          "displayName": "Add button",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "attributes": {
+        "data-commerce-product": {
+          "mode": "prop",
+          "value": "productSlug"
+        }
+      },
+      "classNames": [
+        "shop-compact-card"
+      ],
+      "children": {
+        "Image": {
+          "childType": "htmlNode",
+          "classNames": [
+            "shop-card-media"
+          ],
+          "attributes": {
+            "href": {
+              "mode": "prop",
+              "value": "itemLink"
+            },
+            "tabindex": {
+              "mode": "static",
+              "value": "-1"
+            },
+            "aria-hidden": {
+              "mode": "static",
+              "value": "true"
+            }
+          },
+          "element": "a",
+          "contentType": "container",
+          "children": {
+            "Image": {
+              "childType": "component",
+              "componentId": "a42b3c83-0e26-4eb0-ace1-7b19cf84c8aa",
+              "propBindings": {
+                "imageSource": {
+                  "mode": "prop",
+                  "value": "productImage"
+                },
+                "aspectRatio": {
+                  "mode": "static",
+                  "value": "Square"
+                },
+                "mediaType": {
+                  "mode": "static",
+                  "value": "Image"
+                },
+                "mediaRadius": {
+                  "mode": "static",
+                  "value": "None"
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        },
+        "Info": {
+          "childType": "htmlNode",
+          "classNames": [
+            "stack",
+            "gap-element-micro",
+            "shop-card-link"
+          ],
+          "attributes": {
+            "href": {
+              "mode": "prop",
+              "value": "itemLink"
+            }
+          },
+          "element": "a",
+          "contentType": "container",
+          "children": {
+            "Name": {
+              "childType": "htmlNode",
+              "classNames": [
+                "text-style-small",
+                "text-weight-strong",
+                "text-clamp-2"
+              ],
+              "element": "span",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "productName"
+              },
+              "order": 1
+            },
+            "Prices": {
+              "childType": "htmlNode",
+              "classNames": [
+                "row",
+                "gap-element-horizontal-small"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Price": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "text-style-small"
+                  ],
+                  "element": "span",
+                  "contentType": "text",
+                  "textContent": {
+                    "mode": "prop",
+                    "value": "productPrice"
+                  },
+                  "order": 1
+                },
+                "Compare Price": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "text-style-small",
+                    "shop-compare"
+                  ],
+                  "hidable": true,
+                  "visible": true,
+                  "element": "s",
+                  "contentType": "text",
+                  "textContent": {
+                    "mode": "prop",
+                    "value": "productComparePrice"
+                  },
+                  "order": 2
+                }
+              },
+              "order": 2
+            }
+          },
+          "order": 2
+        },
+        "Add": {
+          "childType": "htmlNode",
+          "classNames": [
+            "button",
+            "button-secondary",
+            "button-small"
+          ],
+          "attributes": {
+            "type": {
+              "mode": "static",
+              "value": "button"
+            },
+            "data-commerce-add": {
+              "mode": "static",
+              "value": ""
+            }
+          },
+          "element": "button",
+          "contentType": "text",
+          "textContent": {
+            "mode": "prop",
+            "value": "addLabel"
+          },
+          "order": 3
+        }
+      }
+    },
+    {
+      "id": "ct-shop-featured-product-card",
+      "name": "Product Card • Featured",
+      "description": "One shop product as a large card: a tag, its name, short description, price, add to cart and a link to its page.",
+      "element": "article",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 2059,
+          "name": "itemLink",
+          "type": "link",
+          "defaultValue": "",
+          "displayName": "Link",
+          "propertyCategory": "Settings",
+          "userFacing": false,
+          "shop": "url"
+        },
+        {
+          "reg": "productName",
+          "name": "productName",
+          "type": "string",
+          "defaultValue": "Classic Short Boot",
+          "displayName": "Name",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "name"
+        },
+        {
+          "reg": "productSummary",
+          "name": "productSummary",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Twin-face sheepskin with a light, cushioned sole."
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Summary",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "short_description"
+        },
+        {
+          "reg": "productPrice",
+          "name": "productPrice",
+          "type": "string",
+          "defaultValue": "$129.00",
+          "displayName": "Price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "price"
+        },
+        {
+          "reg": "productComparePrice",
+          "name": "productComparePrice",
+          "type": "string",
+          "defaultValue": "",
+          "displayName": "Compare-at price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "compare_at_price"
+        },
+        {
+          "reg": "productSlug",
+          "name": "productSlug",
+          "type": "string",
+          "defaultValue": "classic-short-boot",
+          "displayName": "Slug",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "slug"
+        },
+        {
+          "id": 2143,
+          "name": "tagText",
+          "type": "string",
+          "defaultValue": "New",
+          "displayName": "Tag",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "name": "addLabel",
+          "type": "string",
+          "defaultValue": "Add to cart",
+          "displayName": "Add button",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "name": "moreLabel",
+          "type": "string",
+          "defaultValue": "Find out more",
+          "displayName": "Link button",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "attributes": {
+        "data-commerce-product": {
+          "mode": "prop",
+          "value": "productSlug"
+        }
+      },
+      "classNames": [
+        "shop-feature-card"
+      ],
+      "children": {
+        "Tag": {
+          "childType": "component",
+          "componentId": "el-chip",
+          "propBindings": {
+            "tagText": {
+              "mode": "prop",
+              "value": "tagText"
+            },
+            "tagSize": {
+              "mode": "static",
+              "value": "Small"
+            }
+          },
+          "hidable": true,
+          "visible": true,
+          "order": 1
+        },
+        "Heading": {
+          "childType": "component",
+          "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+          "propBindings": {
+            "headingText": {
+              "mode": "prop",
+              "value": "productName"
+            },
+            "headingTag": {
+              "mode": "static",
+              "value": "H2"
+            },
+            "headingSize": {
+              "mode": "static",
+              "value": "H2"
+            },
+            "maxWidth": {
+              "mode": "static",
+              "value": "None"
+            }
+          },
+          "order": 2
+        },
+        "Summary": {
+          "childType": "component",
+          "componentId": "b2763258-9eb3-490d-8d99-47c2787fae27",
+          "propBindings": {
+            "paragraphText": {
+              "mode": "prop",
+              "value": "productSummary"
+            },
+            "maxWidth": {
+              "mode": "static",
+              "value": "None"
+            }
+          },
+          "hidable": true,
+          "visible": true,
+          "order": 3
+        },
+        "Prices": {
+          "childType": "htmlNode",
+          "classNames": [
+            "row",
+            "gap-element-horizontal-small"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Price": {
+              "childType": "htmlNode",
+              "classNames": [
+                "heading-style-h5"
+              ],
+              "element": "span",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "productPrice"
+              },
+              "order": 1
+            },
+            "Compare Price": {
+              "childType": "htmlNode",
+              "classNames": [
+                "text-style-small",
+                "shop-compare"
+              ],
+              "hidable": true,
+              "visible": true,
+              "element": "s",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "productComparePrice"
+              },
+              "order": 2
+            }
+          },
+          "order": 4
+        },
+        "Buttons": {
+          "childType": "htmlNode",
+          "classNames": [
+            "button-group"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Add": {
+              "childType": "htmlNode",
+              "classNames": [
+                "button"
+              ],
+              "attributes": {
+                "type": {
+                  "mode": "static",
+                  "value": "button"
+                },
+                "data-commerce-add": {
+                  "mode": "static",
+                  "value": ""
+                }
+              },
+              "element": "button",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "addLabel"
+              },
+              "order": 1
+            },
+            "More": {
+              "childType": "htmlNode",
+              "classNames": [
+                "button",
+                "button-secondary"
+              ],
+              "attributes": {
+                "href": {
+                  "mode": "prop",
+                  "value": "itemLink"
+                }
+              },
+              "element": "a",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "moreLabel"
+              },
+              "order": 2
+            }
+          },
+          "order": 5
+        }
+      }
+    },
+    {
+      "id": "ct-shop-product-list-hover",
+      "name": "Product List • Grid • 4 Column • Hover Image",
+      "description": "Shop products in a four-column grid of hover-image cards.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "id": 460,
+          "name": "items",
+          "type": "array",
+          "defaultValue": [
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            }
+          ],
+          "userFacing": false
+        },
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"all\",\"sort\":\"featured\",\"limit\":8}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "grid-column-4"
+      ],
+      "children": {},
+      "repeat": {
+        "itemComponentId": "ct-shop-product-card-hover",
+        "propName": "items",
+        "propBindings": {},
+        "listConfig": {
+          "defaultCount": 4,
+          "min": 1
+        },
+        "transferKey": "Product List"
+      }
+    },
+    {
+      "id": "ct-shop-product-track",
+      "name": "Product List • Scrolling Row • Hover Image",
+      "description": "Shop products in a row that scrolls sideways, four cards and the edge of the next in view.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "id": 460,
+          "name": "items",
+          "type": "array",
+          "defaultValue": [
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            }
+          ],
+          "userFacing": false
+        },
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"all\",\"sort\":\"newest\",\"limit\":10}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "shop-track"
+      ],
+      "children": {},
+      "repeat": {
+        "itemComponentId": "ct-shop-product-card-hover",
+        "propName": "items",
+        "propBindings": {},
+        "listConfig": {
+          "defaultCount": 5,
+          "min": 1
+        },
+        "transferKey": "Product List"
+      }
+    },
+    {
+      "id": "ct-shop-product-list-quick-add",
+      "name": "Product List • Grid • 4 Column • Quick Add",
+      "description": "Shop products in a four-column grid of cards that add to the cart in place.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "id": 460,
+          "name": "items",
+          "type": "array",
+          "defaultValue": [
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            }
+          ],
+          "userFacing": false
+        },
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"all\",\"sort\":\"featured\",\"limit\":8}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "grid-column-4"
+      ],
+      "children": {},
+      "repeat": {
+        "itemComponentId": "ct-shop-product-card-quick-add",
+        "propName": "items",
+        "propBindings": {},
+        "listConfig": {
+          "defaultCount": 4,
+          "min": 1
+        },
+        "transferKey": "Product List"
+      }
+    },
+    {
+      "id": "ct-shop-product-list-compact",
+      "name": "Product List • Compact • 3 Column",
+      "description": "Shop products as compact single-row cards, three across.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "id": 460,
+          "name": "items",
+          "type": "array",
+          "defaultValue": [
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            }
+          ],
+          "userFacing": false
+        },
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"related\",\"sort\":\"featured\",\"limit\":3}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "grid-column-3",
+        "gap-element-small"
+      ],
+      "children": {},
+      "repeat": {
+        "itemComponentId": "ct-shop-product-card-compact",
+        "propName": "items",
+        "propBindings": {},
+        "listConfig": {
+          "defaultCount": 3,
+          "min": 1
+        },
+        "transferKey": "Product List"
+      }
+    },
+    {
+      "id": "ct-shop-featured-product-list",
+      "name": "Product List • Featured",
+      "description": "One shop product, as a featured card.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "id": 460,
+          "name": "items",
+          "type": "array",
+          "defaultValue": [
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            }
+          ],
+          "userFacing": false
+        },
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"all\",\"sort\":\"newest\",\"limit\":1}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [],
+      "children": {},
+      "repeat": {
+        "itemComponentId": "ct-shop-featured-product-card",
+        "propName": "items",
+        "propBindings": {},
+        "listConfig": {
+          "defaultCount": 1,
+          "min": 1
+        },
+        "transferKey": "Product List"
+      }
+    },
+    {
+      "id": "ct-shop-category-tile",
+      "name": "Category Tile • Image",
+      "description": "A link to a part of the shop as a tall photo with its name and a call to action on a gradient at its foot.",
+      "element": "a",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 251,
+          "name": "imageSource",
+          "type": "image",
+          "defaultValue": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+          "displayName": "Image",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 2056,
+          "name": "titleText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Living"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Title",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 83,
+          "name": "buttonLabel",
+          "type": "string",
+          "defaultValue": "Shop now",
+          "displayName": "Link label",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 2059,
+          "name": "itemLink",
+          "type": "link",
+          "defaultValue": "",
+          "displayName": "Link",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "attributes": {
+        "href": {
+          "mode": "prop",
+          "value": "itemLink"
+        }
+      },
+      "classNames": [
+        "shop-tile"
+      ],
+      "children": {
+        "Image": {
+          "childType": "component",
+          "componentId": "a42b3c83-0e26-4eb0-ace1-7b19cf84c8aa",
+          "propBindings": {
+            "imageSource": {
+              "mode": "prop",
+              "value": "imageSource"
+            },
+            "aspectRatio": {
+              "mode": "static",
+              "value": "Classic Portrait"
+            },
+            "mediaType": {
+              "mode": "static",
+              "value": "Image"
+            },
+            "mediaRadius": {
+              "mode": "static",
+              "value": "None"
+            }
+          },
+          "order": 1
+        },
+        "Label": {
+          "childType": "htmlNode",
+          "classNames": [
+            "shop-tile-label"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Title": {
+              "childType": "component",
+              "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+              "propBindings": {
+                "headingText": {
+                  "mode": "prop",
+                  "value": "titleText"
+                },
+                "headingTag": {
+                  "mode": "static",
+                  "value": "H3"
+                },
+                "headingSize": {
+                  "mode": "static",
+                  "value": "H5"
+                },
+                "maxWidth": {
+                  "mode": "static",
+                  "value": "None"
+                }
+              },
+              "order": 1
+            },
+            "Action": {
+              "childType": "htmlNode",
+              "classNames": [
+                "text-style-small",
+                "text-weight-strong",
+                "text-underline"
+              ],
+              "hidable": true,
+              "visible": true,
+              "element": "span",
+              "contentType": "text",
+              "textContent": {
+                "mode": "prop",
+                "value": "buttonLabel"
+              },
+              "order": 2
+            }
+          },
+          "order": 2
+        }
+      }
+    },
+    {
+      "id": "ct-shop-category-tile-list",
+      "name": "Category Tile List • Grid • 4 Column",
+      "description": "Image tiles linking to parts of the shop, four across.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "id": 460,
+          "name": "items",
+          "type": "array",
+          "defaultValue": [
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Living"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Dining"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Bedroom"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Outdoor"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "userFacing": false
+        },
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        }
+      ],
+      "classNames": [
+        "grid-column-4"
+      ],
+      "children": {},
+      "repeat": {
+        "itemComponentId": "ct-shop-category-tile",
+        "propName": "items",
+        "propBindings": {},
+        "listConfig": {
+          "defaultCount": 4,
+          "min": 1
+        },
+        "transferKey": "Category Tile List"
+      }
+    },
+    {
+      "id": "ct-shop-usp-item",
+      "name": "Benefit Item",
+      "description": "A shop promise: an icon, a short title and a line under it.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 493,
+          "name": "iconGlyph",
+          "type": "iconName",
+          "defaultValue": "local_shipping",
+          "displayName": "Icon",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 2056,
+          "name": "titleText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Free delivery"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Title",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 64,
+          "name": "paragraphText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "On orders over $100"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Text",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "shop-usp"
+      ],
+      "children": {
+        "Icon": {
+          "childType": "component",
+          "componentId": "bb57d385-17ef-487a-8d36-3c8534d8118a",
+          "propBindings": {
+            "iconGlyph": {
+              "mode": "prop",
+              "value": "iconGlyph"
+            },
+            "iconSize": {
+              "mode": "static",
+              "value": "Medium"
+            }
+          },
+          "order": 1
+        },
+        "Title": {
+          "childType": "component",
+          "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+          "propBindings": {
+            "headingText": {
+              "mode": "prop",
+              "value": "titleText"
+            },
+            "headingTag": {
+              "mode": "static",
+              "value": "H3"
+            },
+            "headingSize": {
+              "mode": "static",
+              "value": "H6"
+            },
+            "contentHorizontalAlignment": {
+              "mode": "static",
+              "value": "Center"
+            },
+            "maxWidth": {
+              "mode": "static",
+              "value": "None"
+            }
+          },
+          "order": 2
+        },
+        "Text": {
+          "childType": "component",
+          "componentId": "b2763258-9eb3-490d-8d99-47c2787fae27",
+          "propBindings": {
+            "paragraphText": {
+              "mode": "prop",
+              "value": "paragraphText"
+            },
+            "paragraphSize": {
+              "mode": "static",
+              "value": "Small"
+            },
+            "contentHorizontalAlignment": {
+              "mode": "static",
+              "value": "Center"
+            }
+          },
+          "hidable": true,
+          "visible": true,
+          "order": 3
+        }
+      }
+    },
+    {
+      "id": "ct-shop-usp-list",
+      "name": "Benefit List • Strip • 4 Column",
+      "description": "Shop promises in a ruled strip, four across.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "id": 460,
+          "name": "items",
+          "type": "array",
+          "defaultValue": [
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "iconGlyph": "local_shipping",
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Free delivery"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "paragraphText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "On orders over $100"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "iconGlyph": "autorenew",
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Free 30-day returns"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "paragraphText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Change your mind, no fuss"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "iconGlyph": "verified",
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "2-year warranty"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "paragraphText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "On everything we make"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "iconGlyph": "credit_card",
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Pay over time"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "paragraphText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Four interest-free payments"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "userFacing": false
+        },
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        }
+      ],
+      "classNames": [
+        "shop-usp-strip"
+      ],
+      "children": {},
+      "repeat": {
+        "itemComponentId": "ct-shop-usp-item",
+        "propName": "items",
+        "propBindings": {},
+        "listConfig": {
+          "defaultCount": 4,
+          "min": 1
+        },
+        "transferKey": "Benefit List"
+      }
+    },
+    {
+      "id": "ct-shop-review-card",
+      "name": "Review Card",
+      "description": "A customer's review: stars, a title, the review and who wrote it.",
+      "element": "article",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 58,
+          "name": "starRating",
+          "type": "enum",
+          "defaultValue": "5",
+          "displayName": "Rating",
+          "propertyCategory": "Content",
+          "userFacing": true,
+          "enumValues": [
+            "0.5",
+            "1",
+            "1.5",
+            "2",
+            "2.5",
+            "3",
+            "3.5",
+            "4",
+            "4.5",
+            "5"
+          ]
+        },
+        {
+          "id": 2056,
+          "name": "titleText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Worth every cent"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Title",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 64,
+          "name": "paragraphText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Arrived quickly and looks even better than the photos. The quality is obvious the moment you unbox it."
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Review",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 68,
+          "name": "labelText",
+          "type": "string",
+          "defaultValue": "Sam R. · Verified buyer",
+          "displayName": "Reviewer",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "shop-review-card"
+      ],
+      "children": {
+        "Stars": {
+          "childType": "component",
+          "componentId": "el-star-rating",
+          "propBindings": {
+            "starRating": {
+              "mode": "prop",
+              "value": "starRating"
+            },
+            "starRatingSize": {
+              "mode": "static",
+              "value": "Small"
+            }
+          },
+          "order": 1
+        },
+        "Title": {
+          "childType": "component",
+          "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+          "propBindings": {
+            "headingText": {
+              "mode": "prop",
+              "value": "titleText"
+            },
+            "headingTag": {
+              "mode": "static",
+              "value": "H3"
+            },
+            "headingSize": {
+              "mode": "static",
+              "value": "H6"
+            },
+            "maxWidth": {
+              "mode": "static",
+              "value": "None"
+            }
+          },
+          "order": 2
+        },
+        "Body": {
+          "childType": "component",
+          "componentId": "b2763258-9eb3-490d-8d99-47c2787fae27",
+          "propBindings": {
+            "paragraphText": {
+              "mode": "prop",
+              "value": "paragraphText"
+            },
+            "paragraphSize": {
+              "mode": "static",
+              "value": "Small"
+            },
+            "textTruncate": {
+              "mode": "static",
+              "value": "3 Lines"
+            },
+            "maxWidth": {
+              "mode": "static",
+              "value": "None"
+            }
+          },
+          "order": 3
+        },
+        "Reviewer": {
+          "childType": "htmlNode",
+          "classNames": [
+            "text-style-tiny",
+            "shop-muted"
+          ],
+          "element": "span",
+          "contentType": "text",
+          "textContent": {
+            "mode": "prop",
+            "value": "labelText"
+          },
+          "order": 4
+        }
+      }
+    },
+    {
+      "id": "ct-shop-review-list",
+      "name": "Review List • 3 Column",
+      "description": "Customer reviews, three across.",
+      "element": "div",
+      "componentLevel": "content",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "id": 460,
+          "name": "items",
+          "type": "array",
+          "defaultValue": [
+            {
+              "breakpoint": "",
+              "$propOverrides": {}
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "starRating": "5",
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "So comfortable"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "paragraphText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "I was unsure about ordering online, but the fit is perfect and returns were easy to understand."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "labelText": "Priya K. · Verified buyer"
+              }
+            },
+            {
+              "breakpoint": "",
+              "$propOverrides": {
+                "starRating": "4",
+                "titleText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Great value"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "paragraphText": {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "children": [
+                        {
+                          "type": "text",
+                          "text": "Lovely finish and well packed. Took a few days longer than expected to arrive."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "labelText": "James T. · Verified buyer"
+              }
+            }
+          ],
+          "userFacing": false
+        },
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        }
+      ],
+      "classNames": [
+        "grid-column-3"
+      ],
+      "children": {},
+      "repeat": {
+        "itemComponentId": "ct-shop-review-card",
+        "propName": "items",
+        "propBindings": {},
+        "listConfig": {
+          "defaultCount": 3,
+          "min": 1
+        },
+        "transferKey": "Review List"
+      }
+    },
+    {
+      "id": "sc-shop-product-carousel",
+      "name": "Products • Scrolling Row",
+      "description": "A heading with a \"View all\" link over a sideways-scrolling row of shop products with hover images, for new arrivals or best sellers on the home page and below a product.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 53,
+          "name": "headingText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "New arrivals"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Text",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 83,
+          "name": "buttonLabel",
+          "type": "string",
+          "defaultValue": "View all",
+          "displayName": "Link label",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 84,
+          "name": "buttonLink",
+          "type": "link",
+          "defaultValue": "",
+          "displayName": "Link",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"all\",\"sort\":\"newest\",\"limit\":10}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "section",
+        "scheme-1"
+      ],
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Stack": {
+              "childType": "htmlNode",
+              "classNames": [
+                "stack",
+                "gap-section-content"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Header": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "shop-heading-row"
+                  ],
+                  "element": "div",
+                  "contentType": "container",
+                  "children": {
+                    "Heading": {
+                      "childType": "component",
+                      "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+                      "propBindings": {
+                        "headingText": {
+                          "mode": "prop",
+                          "value": "headingText"
+                        },
+                        "headingTag": {
+                          "mode": "static",
+                          "value": "H2"
+                        },
+                        "headingSize": {
+                          "mode": "static",
+                          "value": "H3"
+                        },
+                        "maxWidth": {
+                          "mode": "static",
+                          "value": "None"
+                        }
+                      },
+                      "order": 1
+                    },
+                    "Link": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "text-style-regular",
+                        "text-weight-strong",
+                        "text-underline"
+                      ],
+                      "attributes": {
+                        "href": {
+                          "mode": "prop",
+                          "value": "buttonLink"
+                        }
+                      },
+                      "hidable": true,
+                      "visible": true,
+                      "element": "a",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "prop",
+                        "value": "buttonLabel"
+                      },
+                      "order": 2
+                    }
+                  },
+                  "order": 1
+                },
+                "Product List": {
+                  "childType": "component",
+                  "componentId": "ct-shop-product-track",
+                  "propBindings": {
+                    "shopList": {
+                      "mode": "prop",
+                      "value": "shopList"
+                    }
+                  },
+                  "order": 2
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    },
+    {
+      "id": "sc-shop-product-grid-quick-add",
+      "name": "Products • Grid • Quick Add",
+      "description": "A heading over a grid of shop products that shoppers add to the cart without leaving the page, picking an option on the card when the product has them.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 53,
+          "name": "headingText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Best sellers"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Text",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"all\",\"sort\":\"featured\",\"limit\":8}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "section",
+        "scheme-1"
+      ],
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Stack": {
+              "childType": "htmlNode",
+              "classNames": [
+                "stack",
+                "gap-section-content"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Section Content Block": {
+                  "childType": "component",
+                  "componentId": "ct-section-content-block-split-action",
+                  "propBindings": {
+                    "contentHorizontalAlignment": {
+                      "mode": "static",
+                      "value": "Left"
+                    },
+                    "hasHeaderAction": {
+                      "mode": "static",
+                      "value": false
+                    },
+                    "headingText": {
+                      "mode": "prop",
+                      "value": "headingText"
+                    }
+                  },
+                  "hidable": true,
+                  "visible": true,
+                  "order": 1
+                },
+                "Product List": {
+                  "childType": "component",
+                  "componentId": "ct-shop-product-list-quick-add",
+                  "propBindings": {
+                    "shopList": {
+                      "mode": "prop",
+                      "value": "shopList"
+                    }
+                  },
+                  "order": 2
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    },
+    {
+      "id": "sc-shop-featured-product",
+      "name": "Product • Featured on Photo",
+      "description": "A large photo with one shop product on a floating card over it: a tag, its name, short description, price, and buttons to add it to the cart or see more. For launching a product on the home page.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 251,
+          "name": "imageSource",
+          "type": "image",
+          "defaultValue": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+          "displayName": "Background image",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"all\",\"sort\":\"newest\",\"limit\":1}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "section",
+        "scheme-1"
+      ],
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Feature": {
+              "childType": "htmlNode",
+              "classNames": [
+                "shop-feature"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Image": {
+                  "childType": "htmlNode",
+                  "classNames": [],
+                  "attributes": {
+                    "data-feature-image": {
+                      "mode": "static",
+                      "value": ""
+                    }
+                  },
+                  "element": "div",
+                  "contentType": "container",
+                  "children": {
+                    "Image": {
+                      "childType": "component",
+                      "componentId": "a42b3c83-0e26-4eb0-ace1-7b19cf84c8aa",
+                      "propBindings": {
+                        "imageSource": {
+                          "mode": "prop",
+                          "value": "imageSource"
+                        },
+                        "aspectRatio": {
+                          "mode": "static",
+                          "value": "Fill"
+                        },
+                        "mediaType": {
+                          "mode": "static",
+                          "value": "Image"
+                        },
+                        "mediaRadius": {
+                          "mode": "static",
+                          "value": "None"
+                        }
+                      },
+                      "order": 1
+                    }
+                  },
+                  "order": 1
+                },
+                "Product List": {
+                  "childType": "component",
+                  "componentId": "ct-shop-featured-product-list",
+                  "propBindings": {
+                    "shopList": {
+                      "mode": "prop",
+                      "value": "shopList"
+                    }
+                  },
+                  "order": 2
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    },
+    {
+      "id": "sc-shop-category-tiles",
+      "name": "Categories • Image Tiles",
+      "description": "A heading over tall photo tiles, each linking to a part of the shop with its name on the photo. Photos and links are chosen per tile.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 53,
+          "name": "headingText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Shop by room"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Text",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "section",
+        "scheme-1"
+      ],
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Stack": {
+              "childType": "htmlNode",
+              "classNames": [
+                "stack",
+                "gap-section-content"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Section Content Block": {
+                  "childType": "component",
+                  "componentId": "ct-section-content-block-split-action",
+                  "propBindings": {
+                    "contentHorizontalAlignment": {
+                      "mode": "static",
+                      "value": "Left"
+                    },
+                    "hasHeaderAction": {
+                      "mode": "static",
+                      "value": false
+                    },
+                    "headingText": {
+                      "mode": "prop",
+                      "value": "headingText"
+                    }
+                  },
+                  "hidable": true,
+                  "visible": true,
+                  "order": 1
+                },
+                "Category Tile List": {
+                  "childType": "component",
+                  "componentId": "ct-shop-category-tile-list",
+                  "propBindings": {},
+                  "order": 2
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    },
+    {
+      "id": "sc-shop-benefits-strip",
+      "name": "Benefits • Strip",
+      "description": "A ruled strip of the shop's promises (delivery, returns, warranty, payment), each an icon, a title and a line. For the foot of the home page or under a product.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        }
+      ],
+      "classNames": [
+        "section-small",
+        "scheme-1"
+      ],
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Stack": {
+              "childType": "htmlNode",
+              "classNames": [
+                "stack",
+                "gap-section-content"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Benefit List": {
+                  "childType": "component",
+                  "componentId": "ct-shop-usp-list",
+                  "propBindings": {},
+                  "order": 1
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    },
+    {
+      "id": "sc-shop-category-banner",
+      "name": "Category • Banner, Links and Products",
+      "description": "A category page: a breadcrumb, the category's name and description on a photo banner, a row of links to related parts of the shop, then a grid of its products with hover images and a Load more button.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "reg": "categoryName",
+          "name": "categoryName",
+          "type": "string",
+          "defaultValue": "Boots",
+          "displayName": "Name",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "name"
+        },
+        {
+          "reg": "categoryDescription",
+          "name": "categoryDescription",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Sheepskin boots for every season."
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Description",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "description"
+        },
+        {
+          "id": 251,
+          "name": "imageSource",
+          "type": "image",
+          "defaultValue": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+          "displayName": "Banner image",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 2184,
+          "name": "breadcrumbHomeHref",
+          "type": "link",
+          "defaultValue": "/",
+          "displayName": "Home link",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"category\",\"sort\":\"featured\",\"limit\":12}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        },
+        {
+          "name": "moreLabel",
+          "type": "string",
+          "defaultValue": "Load more",
+          "displayName": "Load more button",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "section",
+        "scheme-1"
+      ],
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Stack": {
+              "childType": "htmlNode",
+              "classNames": [
+                "stack",
+                "gap-section-content"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Banner": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "shop-banner"
+                  ],
+                  "element": "div",
+                  "contentType": "container",
+                  "children": {
+                    "Image": {
+                      "childType": "htmlNode",
+                      "classNames": [],
+                      "attributes": {
+                        "data-banner-image": {
+                          "mode": "static",
+                          "value": ""
+                        }
+                      },
+                      "element": "div",
+                      "contentType": "container",
+                      "children": {
+                        "Image": {
+                          "childType": "component",
+                          "componentId": "a42b3c83-0e26-4eb0-ace1-7b19cf84c8aa",
+                          "propBindings": {
+                            "imageSource": {
+                              "mode": "prop",
+                              "value": "imageSource"
+                            },
+                            "aspectRatio": {
+                              "mode": "static",
+                              "value": "Fill"
+                            },
+                            "mediaType": {
+                              "mode": "static",
+                              "value": "Image"
+                            },
+                            "mediaRadius": {
+                              "mode": "static",
+                              "value": "None"
+                            }
+                          },
+                          "order": 1
+                        }
+                      },
+                      "order": 1
+                    },
+                    "Content": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "shop-banner-content"
+                      ],
+                      "element": "div",
+                      "contentType": "container",
+                      "children": {
+                        "Breadcrumb": {
+                          "childType": "htmlNode",
+                          "classNames": [
+                            "shop-breadcrumb"
+                          ],
+                          "attributes": {
+                            "aria-label": {
+                              "mode": "static",
+                              "value": "Breadcrumb"
+                            }
+                          },
+                          "element": "nav",
+                          "contentType": "container",
+                          "children": {
+                            "Home": {
+                              "childType": "htmlNode",
+                              "classNames": [],
+                              "attributes": {
+                                "href": {
+                                  "mode": "prop",
+                                  "value": "breadcrumbHomeHref"
+                                }
+                              },
+                              "element": "a",
+                              "contentType": "text",
+                              "textContent": {
+                                "mode": "static",
+                                "value": "Home"
+                              },
+                              "order": 1
+                            },
+                            "Separator": {
+                              "childType": "htmlNode",
+                              "classNames": [],
+                              "attributes": {
+                                "aria-hidden": {
+                                  "mode": "static",
+                                  "value": "true"
+                                }
+                              },
+                              "element": "span",
+                              "contentType": "text",
+                              "textContent": {
+                                "mode": "static",
+                                "value": "/"
+                              },
+                              "order": 2
+                            },
+                            "Current": {
+                              "childType": "htmlNode",
+                              "classNames": [],
+                              "attributes": {
+                                "aria-current": {
+                                  "mode": "static",
+                                  "value": "page"
+                                }
+                              },
+                              "element": "span",
+                              "contentType": "text",
+                              "textContent": {
+                                "mode": "prop",
+                                "value": "categoryName"
+                              },
+                              "order": 3
+                            }
+                          },
+                          "order": 1
+                        },
+                        "Heading": {
+                          "childType": "component",
+                          "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+                          "propBindings": {
+                            "headingText": {
+                              "mode": "prop",
+                              "value": "categoryName"
+                            },
+                            "headingTag": {
+                              "mode": "static",
+                              "value": "H1"
+                            },
+                            "headingSize": {
+                              "mode": "static",
+                              "value": "H1"
+                            },
+                            "maxWidth": {
+                              "mode": "static",
+                              "value": "None"
+                            }
+                          },
+                          "order": 2
+                        },
+                        "Paragraph": {
+                          "childType": "component",
+                          "componentId": "b2763258-9eb3-490d-8d99-47c2787fae27",
+                          "propBindings": {
+                            "paragraphText": {
+                              "mode": "prop",
+                              "value": "categoryDescription"
+                            },
+                            "paragraphSize": {
+                              "mode": "static",
+                              "value": "Medium"
+                            },
+                            "textTruncate": {
+                              "mode": "static",
+                              "value": "2 Lines"
+                            }
+                          },
+                          "hidable": true,
+                          "visible": true,
+                          "order": 3
+                        }
+                      },
+                      "order": 2
+                    }
+                  },
+                  "order": 1
+                },
+                "Links": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "shop-chips"
+                  ],
+                  "attributes": {
+                    "aria-label": {
+                      "mode": "static",
+                      "value": "Related categories"
+                    }
+                  },
+                  "hidable": true,
+                  "visible": true,
+                  "element": "nav",
+                  "contentType": "container",
+                  "children": {
+                    "Link 1": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "shop-chip"
+                      ],
+                      "attributes": {
+                        "href": {
+                          "mode": "static",
+                          "value": "#"
+                        }
+                      },
+                      "element": "a",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "static",
+                        "value": "Sofas"
+                      },
+                      "order": 1
+                    },
+                    "Link 2": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "shop-chip"
+                      ],
+                      "attributes": {
+                        "href": {
+                          "mode": "static",
+                          "value": "#"
+                        }
+                      },
+                      "element": "a",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "static",
+                        "value": "Armchairs"
+                      },
+                      "order": 2
+                    },
+                    "Link 3": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "shop-chip"
+                      ],
+                      "attributes": {
+                        "href": {
+                          "mode": "static",
+                          "value": "#"
+                        }
+                      },
+                      "element": "a",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "static",
+                        "value": "Coffee tables"
+                      },
+                      "order": 3
+                    },
+                    "Link 4": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "shop-chip"
+                      ],
+                      "attributes": {
+                        "href": {
+                          "mode": "static",
+                          "value": "#"
+                        }
+                      },
+                      "element": "a",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "static",
+                        "value": "Side tables"
+                      },
+                      "order": 4
+                    },
+                    "Link 5": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "shop-chip"
+                      ],
+                      "attributes": {
+                        "href": {
+                          "mode": "static",
+                          "value": "#"
+                        }
+                      },
+                      "element": "a",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "static",
+                        "value": "Rugs"
+                      },
+                      "order": 5
+                    }
+                  },
+                  "order": 2
+                },
+                "Products": {
+                  "childType": "component",
+                  "componentId": "ct-shop-product-list-hover",
+                  "propBindings": {
+                    "shopList": {
+                      "mode": "prop",
+                      "value": "shopList"
+                    }
+                  },
+                  "order": 3
+                },
+                "More": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "button",
+                    "button-secondary"
+                  ],
+                  "attributes": {
+                    "type": {
+                      "mode": "static",
+                      "value": "button"
+                    },
+                    "data-shop-more": {
+                      "mode": "static",
+                      "value": ""
+                    }
+                  },
+                  "element": "button",
+                  "contentType": "text",
+                  "textContent": {
+                    "mode": "prop",
+                    "value": "moreLabel"
+                  },
+                  "order": 4
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    },
+    {
+      "id": "sc-shop-pair-with",
+      "name": "Products • Pair It With",
+      "description": "A heading over compact cards of products related to the page's product, each with its own add button, on a tinted band. For a product page's cross-sell.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 53,
+          "name": "headingText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Pair it with"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Text",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "reg": "shopList",
+          "name": "shopList",
+          "type": "shopList",
+          "defaultValue": "{\"source\":\"related\",\"sort\":\"featured\",\"limit\":3}",
+          "displayName": "Shop list",
+          "propertyCategory": "Settings",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "section-small",
+        "scheme-1"
+      ],
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Panel": {
+              "childType": "htmlNode",
+              "classNames": [
+                "shop-summary-card"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Heading": {
+                  "childType": "component",
+                  "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+                  "propBindings": {
+                    "headingText": {
+                      "mode": "prop",
+                      "value": "headingText"
+                    },
+                    "headingTag": {
+                      "mode": "static",
+                      "value": "H2"
+                    },
+                    "headingSize": {
+                      "mode": "static",
+                      "value": "H5"
+                    },
+                    "maxWidth": {
+                      "mode": "static",
+                      "value": "None"
+                    }
+                  },
+                  "order": 1
+                },
+                "Product List": {
+                  "childType": "component",
+                  "componentId": "ct-shop-product-list-compact",
+                  "propBindings": {
+                    "shopList": {
+                      "mode": "prop",
+                      "value": "shopList"
+                    }
+                  },
+                  "order": 2
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    },
+    {
+      "id": "sc-shop-buy-bar",
+      "name": "Product • Sticky Buy Bar",
+      "description": "A bar that stays at the foot of the screen on a product page: the product's photo, name and price, quantity and add to cart, so shoppers can buy from anywhere on the page. Place it last on the page.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "reg": "productName",
+          "name": "productName",
+          "type": "string",
+          "defaultValue": "Classic Short Boot",
+          "displayName": "Name",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "name"
+        },
+        {
+          "reg": "productPrice",
+          "name": "productPrice",
+          "type": "string",
+          "defaultValue": "$129.00",
+          "displayName": "Price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "price"
+        },
+        {
+          "reg": "productComparePrice",
+          "name": "productComparePrice",
+          "type": "string",
+          "defaultValue": "",
+          "displayName": "Compare-at price",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "compare_at_price"
+        },
+        {
+          "reg": "productImage",
+          "name": "productImage",
+          "type": "image",
+          "defaultValue": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+          "displayName": "Image",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "media.0.url"
+        },
+        {
+          "reg": "productSlug",
+          "name": "productSlug",
+          "type": "string",
+          "defaultValue": "classic-short-boot",
+          "displayName": "Slug",
+          "propertyCategory": "Content",
+          "userFacing": false,
+          "shop": "slug"
+        },
+        {
+          "name": "addLabel",
+          "type": "string",
+          "defaultValue": "Add to cart",
+          "displayName": "Add button",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "shop-buy-bar",
+        "scheme-1"
+      ],
+      "attributes": {
+        "data-commerce-product": {
+          "mode": "prop",
+          "value": "productSlug"
+        }
+      },
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Bar": {
+              "childType": "htmlNode",
+              "classNames": [
+                "shop-buy-bar-inner"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Image": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "shop-card-media"
+                  ],
+                  "element": "div",
+                  "contentType": "container",
+                  "children": {
+                    "Image": {
+                      "childType": "component",
+                      "componentId": "a42b3c83-0e26-4eb0-ace1-7b19cf84c8aa",
+                      "propBindings": {
+                        "imageSource": {
+                          "mode": "prop",
+                          "value": "productImage"
+                        },
+                        "aspectRatio": {
+                          "mode": "static",
+                          "value": "Square"
+                        },
+                        "mediaType": {
+                          "mode": "static",
+                          "value": "Image"
+                        },
+                        "mediaRadius": {
+                          "mode": "static",
+                          "value": "None"
+                        }
+                      },
+                      "order": 1
+                    }
+                  },
+                  "order": 1
+                },
+                "Info": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "stack",
+                    "gap-element-micro"
+                  ],
+                  "element": "div",
+                  "contentType": "container",
+                  "children": {
+                    "Name": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "text-style-regular",
+                        "text-weight-strong",
+                        "text-clamp-1"
+                      ],
+                      "element": "span",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "prop",
+                        "value": "productName"
+                      },
+                      "order": 1
+                    },
+                    "Prices": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "row",
+                        "gap-element-horizontal-small"
+                      ],
+                      "element": "div",
+                      "contentType": "container",
+                      "children": {
+                        "Price": {
+                          "childType": "htmlNode",
+                          "classNames": [
+                            "text-style-small"
+                          ],
+                          "attributes": {
+                            "data-commerce-price": {
+                              "mode": "static",
+                              "value": ""
+                            }
+                          },
+                          "element": "span",
+                          "contentType": "text",
+                          "textContent": {
+                            "mode": "prop",
+                            "value": "productPrice"
+                          },
+                          "order": 1
+                        },
+                        "Compare Price": {
+                          "childType": "htmlNode",
+                          "classNames": [
+                            "text-style-small",
+                            "shop-compare"
+                          ],
+                          "attributes": {
+                            "data-commerce-compare-price": {
+                              "mode": "static",
+                              "value": ""
+                            }
+                          },
+                          "element": "s",
+                          "contentType": "text",
+                          "textContent": {
+                            "mode": "prop",
+                            "value": "productComparePrice"
+                          },
+                          "order": 2
+                        }
+                      },
+                      "order": 2
+                    }
+                  },
+                  "order": 2
+                },
+                "Buy": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "shop-buy-row"
+                  ],
+                  "element": "div",
+                  "contentType": "container",
+                  "children": {
+                    "Quantity": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "input",
+                        "shop-qty"
+                      ],
+                      "attributes": {
+                        "type": {
+                          "mode": "static",
+                          "value": "number"
+                        },
+                        "min": {
+                          "mode": "static",
+                          "value": "1"
+                        },
+                        "value": {
+                          "mode": "static",
+                          "value": "1"
+                        },
+                        "aria-label": {
+                          "mode": "static",
+                          "value": "Quantity"
+                        },
+                        "data-commerce-quantity": {
+                          "mode": "static",
+                          "value": ""
+                        }
+                      },
+                      "element": "input",
+                      "contentType": "void",
+                      "order": 1
+                    },
+                    "Add": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "button"
+                      ],
+                      "attributes": {
+                        "type": {
+                          "mode": "static",
+                          "value": "button"
+                        },
+                        "data-commerce-add": {
+                          "mode": "static",
+                          "value": ""
+                        }
+                      },
+                      "element": "button",
+                      "contentType": "text",
+                      "textContent": {
+                        "mode": "prop",
+                        "value": "addLabel"
+                      },
+                      "order": 2
+                    }
+                  },
+                  "order": 3
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    },
+    {
+      "id": "sc-shop-reviews",
+      "name": "Reviews • Score and Cards",
+      "description": "The shop's or a product's review score: the average, its stars, the review count and a five-row histogram, beside three review cards. Written in the Editor; the shop has no reviews yet.",
+      "element": "section",
+      "componentLevel": "section",
+      "category": "shop",
+      "tags": [
+        "shop"
+      ],
+      "props": [
+        {
+          "name": "breakpoint",
+          "type": "enum",
+          "defaultValue": "desktop",
+          "enumValues": [
+            "desktop",
+            "tablet",
+            "mobile"
+          ],
+          "isVariantDimension": true
+        },
+        {
+          "id": 53,
+          "name": "headingText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "What our customers say"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Text",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "id": 2142,
+          "name": "ctaParagraphText",
+          "type": "richText",
+          "defaultValue": {
+            "blocks": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Based on 1,284 reviews"
+                  }
+                ]
+              }
+            ]
+          },
+          "displayName": "Review count",
+          "propertyCategory": "Content",
+          "userFacing": true
+        },
+        {
+          "name": "scoreText",
+          "type": "string",
+          "defaultValue": "4.8",
+          "displayName": "Score",
+          "propertyCategory": "Content",
+          "userFacing": true
+        }
+      ],
+      "classNames": [
+        "section",
+        "scheme-1"
+      ],
+      "children": {
+        "Container": {
+          "childType": "htmlNode",
+          "classNames": [
+            "container"
+          ],
+          "element": "div",
+          "contentType": "container",
+          "children": {
+            "Stack": {
+              "childType": "htmlNode",
+              "classNames": [
+                "stack",
+                "gap-section-content"
+              ],
+              "element": "div",
+              "contentType": "container",
+              "children": {
+                "Header": {
+                  "childType": "component",
+                  "componentId": "9e7e1fbe-8e9e-45b5-8246-61c19e687dfd",
+                  "propBindings": {
+                    "headingText": {
+                      "mode": "prop",
+                      "value": "headingText"
+                    },
+                    "headingTag": {
+                      "mode": "static",
+                      "value": "H2"
+                    },
+                    "headingSize": {
+                      "mode": "static",
+                      "value": "H3"
+                    },
+                    "maxWidth": {
+                      "mode": "static",
+                      "value": "None"
+                    }
+                  },
+                  "order": 1
+                },
+                "Reviews": {
+                  "childType": "htmlNode",
+                  "classNames": [
+                    "shop-reviews"
+                  ],
+                  "element": "div",
+                  "contentType": "container",
+                  "children": {
+                    "Summary": {
+                      "childType": "htmlNode",
+                      "classNames": [
+                        "stack",
+                        "gap-element-medium"
+                      ],
+                      "element": "div",
+                      "contentType": "container",
+                      "children": {
+                        "Score": {
+                          "childType": "htmlNode",
+                          "classNames": [
+                            "stack",
+                            "gap-element-tiny"
+                          ],
+                          "element": "div",
+                          "contentType": "container",
+                          "children": {
+                            "Value": {
+                              "childType": "htmlNode",
+                              "classNames": [
+                                "shop-score"
+                              ],
+                              "element": "span",
+                              "contentType": "text",
+                              "textContent": {
+                                "mode": "prop",
+                                "value": "scoreText"
+                              },
+                              "order": 1
+                            },
+                            "Stars": {
+                              "childType": "component",
+                              "componentId": "el-star-rating",
+                              "propBindings": {
+                                "starRating": {
+                                  "mode": "static",
+                                  "value": "5"
+                                }
+                              },
+                              "order": 2
+                            },
+                            "Count": {
+                              "childType": "component",
+                              "componentId": "b2763258-9eb3-490d-8d99-47c2787fae27",
+                              "propBindings": {
+                                "paragraphText": {
+                                  "mode": "prop",
+                                  "value": "ctaParagraphText"
+                                },
+                                "paragraphSize": {
+                                  "mode": "static",
+                                  "value": "Small"
+                                }
+                              },
+                              "order": 3
+                            }
+                          },
+                          "order": 1
+                        },
+                        "Histogram": {
+                          "childType": "htmlNode",
+                          "classNames": [
+                            "stack",
+                            "gap-element-tiny"
+                          ],
+                          "hidable": true,
+                          "visible": true,
+                          "element": "div",
+                          "contentType": "container",
+                          "children": {
+                            "Row 5": {
+                              "childType": "htmlNode",
+                              "classNames": [
+                                "shop-histogram-row"
+                              ],
+                              "element": "div",
+                              "contentType": "container",
+                              "children": {
+                                "Stars": {
+                                  "childType": "htmlNode",
+                                  "classNames": [],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "5 ★"
+                                  },
+                                  "order": 1
+                                },
+                                "Bar": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-histogram-bar"
+                                  ],
+                                  "attributes": {
+                                    "aria-hidden": {
+                                      "mode": "static",
+                                      "value": "true"
+                                    }
+                                  },
+                                  "element": "div",
+                                  "contentType": "container",
+                                  "children": {
+                                    "Fill": {
+                                      "childType": "htmlNode",
+                                      "classNames": [],
+                                      "style": {
+                                        "width": {
+                                          "mode": "static",
+                                          "value": "82%"
+                                        }
+                                      },
+                                      "element": "div",
+                                      "contentType": "container",
+                                      "children": {},
+                                      "order": 1
+                                    }
+                                  },
+                                  "order": 2
+                                },
+                                "Share": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-muted"
+                                  ],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "82%"
+                                  },
+                                  "order": 3
+                                }
+                              },
+                              "order": 1
+                            },
+                            "Row 4": {
+                              "childType": "htmlNode",
+                              "classNames": [
+                                "shop-histogram-row"
+                              ],
+                              "element": "div",
+                              "contentType": "container",
+                              "children": {
+                                "Stars": {
+                                  "childType": "htmlNode",
+                                  "classNames": [],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "4 ★"
+                                  },
+                                  "order": 1
+                                },
+                                "Bar": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-histogram-bar"
+                                  ],
+                                  "attributes": {
+                                    "aria-hidden": {
+                                      "mode": "static",
+                                      "value": "true"
+                                    }
+                                  },
+                                  "element": "div",
+                                  "contentType": "container",
+                                  "children": {
+                                    "Fill": {
+                                      "childType": "htmlNode",
+                                      "classNames": [],
+                                      "style": {
+                                        "width": {
+                                          "mode": "static",
+                                          "value": "12%"
+                                        }
+                                      },
+                                      "element": "div",
+                                      "contentType": "container",
+                                      "children": {},
+                                      "order": 1
+                                    }
+                                  },
+                                  "order": 2
+                                },
+                                "Share": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-muted"
+                                  ],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "12%"
+                                  },
+                                  "order": 3
+                                }
+                              },
+                              "order": 2
+                            },
+                            "Row 3": {
+                              "childType": "htmlNode",
+                              "classNames": [
+                                "shop-histogram-row"
+                              ],
+                              "element": "div",
+                              "contentType": "container",
+                              "children": {
+                                "Stars": {
+                                  "childType": "htmlNode",
+                                  "classNames": [],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "3 ★"
+                                  },
+                                  "order": 1
+                                },
+                                "Bar": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-histogram-bar"
+                                  ],
+                                  "attributes": {
+                                    "aria-hidden": {
+                                      "mode": "static",
+                                      "value": "true"
+                                    }
+                                  },
+                                  "element": "div",
+                                  "contentType": "container",
+                                  "children": {
+                                    "Fill": {
+                                      "childType": "htmlNode",
+                                      "classNames": [],
+                                      "style": {
+                                        "width": {
+                                          "mode": "static",
+                                          "value": "4%"
+                                        }
+                                      },
+                                      "element": "div",
+                                      "contentType": "container",
+                                      "children": {},
+                                      "order": 1
+                                    }
+                                  },
+                                  "order": 2
+                                },
+                                "Share": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-muted"
+                                  ],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "4%"
+                                  },
+                                  "order": 3
+                                }
+                              },
+                              "order": 3
+                            },
+                            "Row 2": {
+                              "childType": "htmlNode",
+                              "classNames": [
+                                "shop-histogram-row"
+                              ],
+                              "element": "div",
+                              "contentType": "container",
+                              "children": {
+                                "Stars": {
+                                  "childType": "htmlNode",
+                                  "classNames": [],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "2 ★"
+                                  },
+                                  "order": 1
+                                },
+                                "Bar": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-histogram-bar"
+                                  ],
+                                  "attributes": {
+                                    "aria-hidden": {
+                                      "mode": "static",
+                                      "value": "true"
+                                    }
+                                  },
+                                  "element": "div",
+                                  "contentType": "container",
+                                  "children": {
+                                    "Fill": {
+                                      "childType": "htmlNode",
+                                      "classNames": [],
+                                      "style": {
+                                        "width": {
+                                          "mode": "static",
+                                          "value": "1%"
+                                        }
+                                      },
+                                      "element": "div",
+                                      "contentType": "container",
+                                      "children": {},
+                                      "order": 1
+                                    }
+                                  },
+                                  "order": 2
+                                },
+                                "Share": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-muted"
+                                  ],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "1%"
+                                  },
+                                  "order": 3
+                                }
+                              },
+                              "order": 4
+                            },
+                            "Row 1": {
+                              "childType": "htmlNode",
+                              "classNames": [
+                                "shop-histogram-row"
+                              ],
+                              "element": "div",
+                              "contentType": "container",
+                              "children": {
+                                "Stars": {
+                                  "childType": "htmlNode",
+                                  "classNames": [],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "1 ★"
+                                  },
+                                  "order": 1
+                                },
+                                "Bar": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-histogram-bar"
+                                  ],
+                                  "attributes": {
+                                    "aria-hidden": {
+                                      "mode": "static",
+                                      "value": "true"
+                                    }
+                                  },
+                                  "element": "div",
+                                  "contentType": "container",
+                                  "children": {
+                                    "Fill": {
+                                      "childType": "htmlNode",
+                                      "classNames": [],
+                                      "style": {
+                                        "width": {
+                                          "mode": "static",
+                                          "value": "1%"
+                                        }
+                                      },
+                                      "element": "div",
+                                      "contentType": "container",
+                                      "children": {},
+                                      "order": 1
+                                    }
+                                  },
+                                  "order": 2
+                                },
+                                "Share": {
+                                  "childType": "htmlNode",
+                                  "classNames": [
+                                    "shop-muted"
+                                  ],
+                                  "element": "span",
+                                  "contentType": "text",
+                                  "textContent": {
+                                    "mode": "static",
+                                    "value": "1%"
+                                  },
+                                  "order": 3
+                                }
+                              },
+                              "order": 5
+                            }
+                          },
+                          "order": 2
+                        }
+                      },
+                      "order": 1
+                    },
+                    "Review List": {
+                      "childType": "component",
+                      "componentId": "ct-shop-review-list",
+                      "propBindings": {},
+                      "order": 2
+                    }
+                  },
+                  "order": 2
+                }
+              },
+              "order": 1
+            }
+          },
+          "order": 1
+        }
+      }
+    }
+  ],
+  "componentSources": {
+    "ct-shop-product-card-hover": "user",
+    "ct-shop-product-card-quick-add": "user",
+    "ct-shop-product-card-compact": "user",
+    "ct-shop-featured-product-card": "user",
+    "ct-shop-product-list-hover": "user",
+    "ct-shop-product-track": "user",
+    "ct-shop-product-list-quick-add": "user",
+    "ct-shop-product-list-compact": "user",
+    "ct-shop-featured-product-list": "user",
+    "ct-shop-category-tile": "user",
+    "ct-shop-category-tile-list": "user",
+    "ct-shop-usp-item": "user",
+    "ct-shop-usp-list": "user",
+    "ct-shop-review-card": "user",
+    "ct-shop-review-list": "user",
+    "sc-shop-product-carousel": "user",
+    "sc-shop-product-grid-quick-add": "user",
+    "sc-shop-featured-product": "user",
+    "sc-shop-category-tiles": "user",
+    "sc-shop-benefits-strip": "user",
+    "sc-shop-category-banner": "user",
+    "sc-shop-pair-with": "user",
+    "sc-shop-buy-bar": "user",
+    "sc-shop-reviews": "user"
+  },
+  "componentMemory": [
+    {
+      "memoryKey": "productImageAlt",
+      "label": "productImageAlt",
+      "description": "The product's second photo, shown while the card is hovered.",
+      "propType": "image",
+      "type": 5,
+      "src": "https://cdn.prod.website-files.com/657a540b7d50276b9cb52564/6a239f8cde20611e2fcbf831_placeholder-image-dark.svg",
+      "displayName": "Second image",
+      "propertyCategory": "Content",
+      "sortOrder": 45,
+      "userFacing": true,
+      "shop": "media.1.url"
+    }
+  ],
+  "themes": [
+    {
+      "id": "default-theme",
+      "classes": {
+        "shop-card-media": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "relative"
+            },
+            "overflow": {
+              "mode": "static",
+              "value": "hidden"
+            },
+            "borderRadius": {
+              "mode": "token",
+              "value": "radius.medium"
+            },
+            "backgroundColor": {
+              "mode": "token",
+              "value": "scheme.background-secondary"
+            }
+          },
+          "css": "& > [data-card-alt] {\n  position: absolute;\n  inset: 0;\n  opacity: 0;\n  transition: opacity 0.4s ease;\n}\na:hover > & > [data-card-alt],\na:focus-visible > & > [data-card-alt] {\n  opacity: 1;\n}\n& > [data-card-alt] > * {\n  height: 100%;\n}\n@media (prefers-reduced-motion: reduce) {\n  & > [data-card-alt] {\n    transition: none;\n  }\n}"
+        },
+        "shop-card-media-contain": {
+          "style": {
+            "padding": {
+              "mode": "token",
+              "value": "spacing.6"
+            }
+          },
+          "css": "& img {\n  object-fit: contain;\n  mix-blend-mode: multiply;\n}"
+        },
+        "shop-badge": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "absolute"
+            },
+            "top": {
+              "mode": "token",
+              "value": "spacing.3"
+            },
+            "left": {
+              "mode": "token",
+              "value": "spacing.3"
+            },
+            "zIndex": {
+              "mode": "static",
+              "value": "1"
+            },
+            "display": {
+              "mode": "static",
+              "value": "inline-flex"
+            },
+            "paddingTop": {
+              "mode": "token",
+              "value": "spacing.1"
+            },
+            "paddingBottom": {
+              "mode": "token",
+              "value": "spacing.1"
+            },
+            "paddingLeft": {
+              "mode": "token",
+              "value": "spacing.2.5"
+            },
+            "paddingRight": {
+              "mode": "token",
+              "value": "spacing.2.5"
+            },
+            "borderRadius": {
+              "mode": "token",
+              "value": "radius.small"
+            },
+            "backgroundColor": {
+              "mode": "token",
+              "value": "scheme.accent"
+            },
+            "color": {
+              "mode": "token",
+              "value": "scheme.background"
+            },
+            "fontSize": {
+              "mode": "token",
+              "value": "text.tiny-size"
+            },
+            "fontWeight": {
+              "mode": "token",
+              "value": "font.weight-semibold"
+            },
+            "letterSpacing": {
+              "mode": "static",
+              "value": "0.04em"
+            },
+            "textTransform": {
+              "mode": "static",
+              "value": "uppercase"
+            }
+          }
+        },
+        "shop-visually-hidden": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "absolute"
+            },
+            "width": {
+              "mode": "static",
+              "value": "1px"
+            },
+            "height": {
+              "mode": "static",
+              "value": "1px"
+            },
+            "overflow": {
+              "mode": "static",
+              "value": "hidden"
+            },
+            "clipPath": {
+              "mode": "static",
+              "value": "inset(50%)"
+            },
+            "whiteSpace": {
+              "mode": "static",
+              "value": "nowrap"
+            }
+          }
+        },
+        "shop-quick-card": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "flexDirection": {
+              "mode": "static",
+              "value": "column"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-small"
+            },
+            "height": {
+              "mode": "static",
+              "value": "100%"
+            }
+          },
+          "css": "& > .shop-quick-buy {\n  margin-top: auto;\n}"
+        },
+        "shop-quick-buy": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-tiny"
+            }
+          },
+          "css": "& select {\n  width: 100%;\n}\n& > button {\n  justify-content: center;\n}\n& > button:disabled {\n  opacity: 0.5;\n  cursor: not-allowed;\n}"
+        },
+        "shop-compact-card": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "gridTemplateColumns": {
+              "mode": "static",
+              "value": "5rem minmax(0, 1fr) auto"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "center"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-horizontal-small"
+            },
+            "padding": {
+              "mode": "token",
+              "value": "spacing.3"
+            },
+            "borderRadius": {
+              "mode": "token",
+              "value": "radius.medium"
+            },
+            "backgroundColor": {
+              "mode": "token",
+              "value": "scheme.background"
+            }
+          }
+        },
+        "shop-track": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "gridAutoFlow": {
+              "mode": "static",
+              "value": "column"
+            },
+            "gridAutoColumns": {
+              "mode": "static",
+              "value": "calc((100% - 3 * var(--gap-grid-column-4)) / 4.25)"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.grid-column-4"
+            },
+            "overflowX": {
+              "mode": "static",
+              "value": "auto"
+            },
+            "scrollSnapType": {
+              "mode": "static",
+              "value": "x mandatory"
+            },
+            "scrollbarWidth": {
+              "mode": "static",
+              "value": "thin"
+            },
+            "paddingBottom": {
+              "mode": "token",
+              "value": "spacing.4"
+            }
+          },
+          "css": "& > * {\n  scroll-snap-align: start;\n}",
+          "breakpointStyles": {
+            "tablet": {
+              "gridAutoColumns": {
+                "mode": "static",
+                "value": "calc((100% - var(--gap-grid-column-4)) / 2.3)"
+              }
+            },
+            "mobile": {
+              "gridAutoColumns": {
+                "mode": "static",
+                "value": "80%"
+              }
+            }
+          }
+        },
+        "shop-heading-row": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "end"
+            },
+            "justifyContent": {
+              "mode": "static",
+              "value": "space-between"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-horizontal-large"
+            }
+          }
+        },
+        "shop-tile": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "relative"
+            },
+            "display": {
+              "mode": "static",
+              "value": "block"
+            },
+            "overflow": {
+              "mode": "static",
+              "value": "hidden"
+            },
+            "borderRadius": {
+              "mode": "token",
+              "value": "radius.medium"
+            },
+            "color": {
+              "mode": "static",
+              "value": "#fff"
+            },
+            "textDecoration": {
+              "mode": "static",
+              "value": "none"
+            }
+          },
+          "css": "& img {\n  transition: transform 0.6s ease;\n}\n&:hover img {\n  transform: scale(1.04);\n}\n@media (prefers-reduced-motion: reduce) {\n  & img {\n    transition: none;\n  }\n}"
+        },
+        "shop-tile-label": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "absolute"
+            },
+            "left": {
+              "mode": "static",
+              "value": "0"
+            },
+            "right": {
+              "mode": "static",
+              "value": "0"
+            },
+            "bottom": {
+              "mode": "static",
+              "value": "0"
+            },
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "flexDirection": {
+              "mode": "static",
+              "value": "column"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-tiny"
+            },
+            "padding": {
+              "mode": "token",
+              "value": "spacing.6"
+            },
+            "paddingTop": {
+              "mode": "token",
+              "value": "spacing.16"
+            },
+            "backgroundImage": {
+              "mode": "static",
+              "value": "linear-gradient(to top, rgb(0 0 0 / 0.55), transparent)"
+            }
+          },
+          "css": "& h3, & span {\n  color: inherit;\n}"
+        },
+        "shop-usp-strip": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "gridTemplateColumns": {
+              "mode": "static",
+              "value": "repeat(4, minmax(0, 1fr))"
+            },
+            "borderTop": {
+              "mode": "static",
+              "value": "1px solid var(--scheme-border)"
+            },
+            "borderBottom": {
+              "mode": "static",
+              "value": "1px solid var(--scheme-border)"
+            }
+          },
+          "css": "& > * + * {\n  border-left: 1px solid var(--scheme-border);\n}",
+          "breakpointStyles": {
+            "tablet": {
+              "gridTemplateColumns": {
+                "mode": "static",
+                "value": "repeat(2, minmax(0, 1fr))"
+              }
+            },
+            "mobile": {
+              "gridTemplateColumns": {
+                "mode": "static",
+                "value": "minmax(0, 1fr)"
+              }
+            }
+          }
+        },
+        "shop-usp": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "flexDirection": {
+              "mode": "static",
+              "value": "column"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "center"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-tiny"
+            },
+            "padding": {
+              "mode": "token",
+              "value": "spacing.6"
+            },
+            "textAlign": {
+              "mode": "static",
+              "value": "center"
+            }
+          }
+        },
+        "shop-banner": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "relative"
+            },
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "end"
+            },
+            "minHeight": {
+              "mode": "static",
+              "value": "22rem"
+            },
+            "overflow": {
+              "mode": "static",
+              "value": "hidden"
+            },
+            "borderRadius": {
+              "mode": "token",
+              "value": "radius.large"
+            },
+            "color": {
+              "mode": "static",
+              "value": "#fff"
+            }
+          },
+          "css": "& > [data-banner-image] {\n  position: absolute;\n  inset: 0;\n}\n& > [data-banner-image] > * {\n  height: 100%;\n}\n& > [data-banner-image]::after {\n  content: \"\";\n  position: absolute;\n  inset: 0;\n  background: linear-gradient(to top, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0.1));\n}\n& h1, & p, & a {\n  color: inherit;\n}"
+        },
+        "shop-banner-content": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "relative"
+            },
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "flexDirection": {
+              "mode": "static",
+              "value": "column"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-small"
+            },
+            "maxWidth": {
+              "mode": "static",
+              "value": "40rem"
+            },
+            "padding": {
+              "mode": "token",
+              "value": "spacing.10"
+            }
+          }
+        },
+        "shop-breadcrumb": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-horizontal-tiny"
+            },
+            "fontSize": {
+              "mode": "token",
+              "value": "text.small-size"
+            }
+          },
+          "css": "& > a {\n  text-decoration: none;\n  opacity: 0.85;\n}"
+        },
+        "shop-chips": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "flexWrap": {
+              "mode": "static",
+              "value": "wrap"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-horizontal-small"
+            }
+          }
+        },
+        "shop-chip": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "inline-flex"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "center"
+            },
+            "paddingTop": {
+              "mode": "token",
+              "value": "spacing.2"
+            },
+            "paddingBottom": {
+              "mode": "token",
+              "value": "spacing.2"
+            },
+            "paddingLeft": {
+              "mode": "token",
+              "value": "spacing.4"
+            },
+            "paddingRight": {
+              "mode": "token",
+              "value": "spacing.4"
+            },
+            "border": {
+              "mode": "static",
+              "value": "1px solid var(--scheme-border)"
+            },
+            "borderRadius": {
+              "mode": "static",
+              "value": "999px"
+            },
+            "color": {
+              "mode": "token",
+              "value": "scheme.text"
+            },
+            "fontSize": {
+              "mode": "token",
+              "value": "text.small-size"
+            },
+            "textDecoration": {
+              "mode": "static",
+              "value": "none"
+            },
+            "whiteSpace": {
+              "mode": "static",
+              "value": "nowrap"
+            }
+          },
+          "css": "&:hover {\n  border-color: var(--scheme-heading);\n}"
+        },
+        "shop-buy-bar": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "sticky"
+            },
+            "bottom": {
+              "mode": "static",
+              "value": "0"
+            },
+            "zIndex": {
+              "mode": "static",
+              "value": "40"
+            },
+            "backgroundColor": {
+              "mode": "token",
+              "value": "scheme.background"
+            },
+            "borderTop": {
+              "mode": "static",
+              "value": "1px solid var(--scheme-border)"
+            },
+            "boxShadow": {
+              "mode": "static",
+              "value": "0 -8px 24px rgb(0 0 0 / 0.06)"
+            }
+          }
+        },
+        "shop-buy-bar-inner": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "gridTemplateColumns": {
+              "mode": "static",
+              "value": "3.5rem minmax(0, 1fr) auto"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "center"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-horizontal-medium"
+            },
+            "paddingTop": {
+              "mode": "token",
+              "value": "spacing.3"
+            },
+            "paddingBottom": {
+              "mode": "token",
+              "value": "spacing.3"
+            }
+          },
+          "breakpointStyles": {
+            "mobile": {
+              "gridTemplateColumns": {
+                "mode": "static",
+                "value": "minmax(0, 1fr) auto"
+              }
+            }
+          },
+          "css": "@media (max-width: 767px) {\n  & > :first-child {\n    display: none;\n  }\n}"
+        },
+        "shop-reviews": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "gridTemplateColumns": {
+              "mode": "static",
+              "value": "minmax(0, 1fr) minmax(0, 2.4fr)"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.grid-column-2"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "start"
+            }
+          },
+          "breakpointStyles": {
+            "tablet": {
+              "gridTemplateColumns": {
+                "mode": "static",
+                "value": "minmax(0, 1fr)"
+              }
+            }
+          }
+        },
+        "shop-score": {
+          "style": {
+            "fontFamily": {
+              "mode": "token",
+              "value": "font.family-heading"
+            },
+            "fontSize": {
+              "mode": "token",
+              "value": "text.display-small-size"
+            },
+            "lineHeight": {
+              "mode": "static",
+              "value": "1"
+            },
+            "fontWeight": {
+              "mode": "token",
+              "value": "font.weight-bold"
+            },
+            "color": {
+              "mode": "token",
+              "value": "scheme.heading"
+            }
+          }
+        },
+        "shop-histogram-row": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "gridTemplateColumns": {
+              "mode": "static",
+              "value": "2.5rem minmax(0, 1fr) 2.5rem"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "center"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-horizontal-small"
+            },
+            "fontSize": {
+              "mode": "token",
+              "value": "text.small-size"
+            }
+          }
+        },
+        "shop-histogram-bar": {
+          "style": {
+            "height": {
+              "mode": "static",
+              "value": "0.5rem"
+            },
+            "overflow": {
+              "mode": "static",
+              "value": "hidden"
+            },
+            "borderRadius": {
+              "mode": "static",
+              "value": "999px"
+            },
+            "backgroundColor": {
+              "mode": "token",
+              "value": "scheme.background-secondary"
+            }
+          },
+          "css": "& > * {\n  height: 100%;\n  background-color: var(--scheme-heading);\n}"
+        },
+        "shop-review-card": {
+          "style": {
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "flexDirection": {
+              "mode": "static",
+              "value": "column"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-small"
+            },
+            "padding": {
+              "mode": "token",
+              "value": "spacing.6"
+            },
+            "border": {
+              "mode": "static",
+              "value": "1px solid var(--scheme-border)"
+            },
+            "borderRadius": {
+              "mode": "token",
+              "value": "radius.medium"
+            }
+          }
+        },
+        "shop-feature": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "relative"
+            },
+            "display": {
+              "mode": "static",
+              "value": "grid"
+            },
+            "alignItems": {
+              "mode": "static",
+              "value": "center"
+            },
+            "minHeight": {
+              "mode": "static",
+              "value": "36rem"
+            },
+            "overflow": {
+              "mode": "static",
+              "value": "hidden"
+            },
+            "borderRadius": {
+              "mode": "token",
+              "value": "radius.large"
+            }
+          },
+          "css": "& > [data-feature-image] {\n  position: absolute;\n  inset: 0;\n}\n& > [data-feature-image] > * {\n  height: 100%;\n}"
+        },
+        "shop-feature-card": {
+          "style": {
+            "position": {
+              "mode": "static",
+              "value": "relative"
+            },
+            "display": {
+              "mode": "static",
+              "value": "flex"
+            },
+            "flexDirection": {
+              "mode": "static",
+              "value": "column"
+            },
+            "gap": {
+              "mode": "token",
+              "value": "gap.element-medium"
+            },
+            "width": {
+              "mode": "static",
+              "value": "min(28rem, calc(100% - 2 * var(--spacing-6)))"
+            },
+            "margin": {
+              "mode": "token",
+              "value": "spacing.10"
+            },
+            "padding": {
+              "mode": "token",
+              "value": "spacing.8"
+            },
+            "borderRadius": {
+              "mode": "token",
+              "value": "radius.large"
+            },
+            "backgroundColor": {
+              "mode": "token",
+              "value": "scheme.background"
+            }
+          },
+          "breakpointStyles": {
+            "mobile": {
+              "margin": {
+                "mode": "token",
+                "value": "spacing.6"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "references": {
+    "sc-shop-product-carousel": {
+      "pages": [
+        "home",
+        "product"
+      ],
+      "seenOn": [
+        "Castlery home",
+        "Koala category",
+        "Text Publishing home",
+        "Bulk Nutrients home",
+        "Woolworths category"
+      ]
+    },
+    "sc-shop-product-grid-quick-add": {
+      "pages": [
+        "home",
+        "category"
+      ],
+      "seenOn": [
+        "Bulk Nutrients home",
+        "Cygnett category",
+        "The Source Bulk Foods category",
+        "Dandelion Vineyards category"
+      ]
+    },
+    "sc-shop-featured-product": {
+      "pages": [
+        "home"
+      ],
+      "seenOn": [
+        "Bulk Nutrients home hero",
+        "Cygnett home callout"
+      ]
+    },
+    "sc-shop-category-tiles": {
+      "pages": [
+        "home"
+      ],
+      "seenOn": [
+        "Beaumont Tiles home",
+        "Kate & Kole home",
+        "Koala home",
+        "Castlery home",
+        "UGG Outlet home",
+        "National Tiles home"
+      ]
+    },
+    "sc-shop-benefits-strip": {
+      "pages": [
+        "home",
+        "category",
+        "product"
+      ],
+      "seenOn": [
+        "Beaumont Tiles (every page)",
+        "Bulk Nutrients home",
+        "National Tiles home",
+        "Castlery home"
+      ]
+    },
+    "sc-shop-category-banner": {
+      "pages": [
+        "category"
+      ],
+      "seenOn": [
+        "Koala category",
+        "Bondi Sands category",
+        "Castlery category",
+        "Bulk Nutrients category",
+        "Kate & Kole category"
+      ]
+    },
+    "sc-shop-pair-with": {
+      "pages": [
+        "product"
+      ],
+      "seenOn": [
+        "Castlery \"Pair it with our picks\"",
+        "Koala \"Make it a set\"",
+        "JB Hi-Fi \"Frequently bought together\""
+      ]
+    },
+    "sc-shop-buy-bar": {
+      "pages": [
+        "product"
+      ],
+      "seenOn": [
+        "UGG Outlet product",
+        "Koala product",
+        "Castlery product",
+        "Kate & Kole product",
+        "Bulk Nutrients product"
+      ]
+    },
+    "sc-shop-reviews": {
+      "pages": [
+        "home",
+        "product"
+      ],
+      "seenOn": [
+        "Woolworths product",
+        "Beaumont Tiles home",
+        "Bulk Nutrients home",
+        "National Tiles home"
+      ]
+    }
+  }
+}
