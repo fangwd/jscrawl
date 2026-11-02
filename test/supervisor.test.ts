@@ -236,6 +236,30 @@ test('a site with a verdict awaiting review is on hold until a person settles it
   await childUp(started.runId);
 });
 
+test('a log is read as a tail, a forward continuation, or a window of whole lines paging back', async () => {
+  const lines = ['first line', 'second line', 'third line'];
+  const crawler = `process.stdout.write(${JSON.stringify(lines.join('\n') + '\n')}); setInterval(() => {}, 1000);`;
+  const chatty = new Supervisor(db, { cwd: process.cwd(), logDir, crawlCommand: () => ['node', '-e', crawler] });
+  const runId = await chatty.start(siteId);
+  await waitFor(async () => (await chatty.log(runId, 0)).text.includes('third'), 'the lines to be logged');
+
+  const tail = await chatty.logTail(siteId, runId, 18);
+  expect(tail.text).toBe('third line\n');
+  expect(tail.start).toBe(tail.offset - tail.text.length);
+
+  // paging back from the tail: the window ends where the tail began and starts on a whole line
+  const earlier = await chatty.log(runId, Math.max(0, tail.start - 16), tail.start - Math.max(0, tail.start - 16));
+  expect(earlier.text).toBe('second line\n');
+  expect(earlier.offset).toBe(tail.start);
+  const first = await chatty.log(runId, 0, earlier.start);
+  expect([first.text, first.start]).toEqual(['first line\n', 0]);
+
+  // forward from the end: nothing new yet
+  const more = await chatty.log(runId, tail.offset);
+  expect([more.text, more.start, more.offset]).toEqual(['', tail.offset, tail.offset]);
+  await chatty.shutdown();
+});
+
 test('stoppedSites names the sites whose last crawl ended', async () => {
   expect(await supervisor.stoppedSites()).toEqual([]);
   const runId = await supervisor.start(siteId);

@@ -242,8 +242,8 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
     if (sub === 'log') {
       const runId = intParam('runId');
       try {
-        // tail=1 serves the end of the log (the agent's crawlLog tool); otherwise
-        // the caller pages forward from an offset (the UI's live tail).
+        // tail=1 serves the end of the log; otherwise the caller reads from an
+        // offset: forward to the end (a live tail), or `limit` bytes (paging back).
         if (params.get('tail')) return sendJson(res, 200, await deps.supervisor.logTail(siteId, runId));
         let target = runId;
         if (target === undefined) {
@@ -251,7 +251,7 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
           target = latest?.id;
           if (target === undefined) return sendJson(res, 404, { error: 'No runs for this site' });
         }
-        return sendJson(res, 200, await deps.supervisor.log(target, intParam('offset') ?? 0));
+        return sendJson(res, 200, await deps.supervisor.log(target, intParam('offset') ?? 0, intParam('limit')));
       } catch (err) {
         return fail(res, err);
       }

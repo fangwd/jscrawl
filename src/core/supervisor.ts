@@ -5,7 +5,7 @@
 
 import { ChildProcess, spawn } from 'child_process';
 import { createWriteStream } from 'fs';
-import { mkdir, open } from 'fs/promises';
+import { mkdir, open, type FileHandle } from 'fs/promises';
 import { join } from 'path';
 import { Database } from 'sqlex';
 import { BLOCKED_EXIT_CODE } from './models';
@@ -47,6 +47,20 @@ export interface SiteCrawlStatus {
 const HOLD = `(select count(*) from issue i join url iu on iu.id = i.url_id
   where iu.site_id = s.id and i.status = 'triaged' and i.same_as is null)`;
 const ON_HOLD = `${HOLD} > 0`;
+
+async function readBytes(handle: FileHandle, from: number, to: number): Promise<{ text: string; start: number }> {
+  const buffer = Buffer.alloc(Math.max(0, to - from));
+  await handle.read(buffer, 0, buffer.length, from);
+  return { text: buffer.toString('utf8'), start: from };
+}
+
+/** The bytes `from`..`to` of the file, less the partial first line when `from` is inside one. */
+async function readLines(handle: FileHandle, from: number, to: number): Promise<{ text: string; start: number }> {
+  const { text } = await readBytes(handle, from, to);
+  if (from === 0) return { text, start: 0 };
+  const partial = text.slice(0, text.indexOf('\n') + 1);
+  return { text: text.slice(partial.length), start: from + Buffer.byteLength(partial) };
+}
 
 function processAlive(pid: number): boolean {
   try {
@@ -157,7 +171,10 @@ export class Supervisor {
     return this.rescrape(Number(url.id), mode);
   }
 
-  /** The tail of a run's log: the latest run of the site when runId is omitted. */
+  /**
+   * The tail of a run's log: the latest run of the site when runId is omitted.
+   * `start` is where the text begins in the file, for reading what came before.
+   */
   async logTail(siteId: number, runId: number | undefined, bytes = 64 * 1024) {
     const run = runId !== undefined ? { id: runId } : (await this.runs(siteId, 1))[0];
     if (!run) throw new SupervisorError(404, 'No runs for this site');
@@ -170,11 +187,8 @@ export class Supervisor {
     try {
       const size = (await handle.stat()).size;
       const from = Math.max(0, size - bytes);
-      const buffer = Buffer.alloc(size - from);
-      await handle.read(buffer, 0, buffer.length, from);
-      let text = buffer.toString('utf8');
-      if (from > 0) text = text.slice(text.indexOf('\n') + 1); // drop the partial first line
-      return { runId: run.id, text, offset: size, running: row.status === 'running' };
+      const { text, start } = await readLines(handle, from, size);
+      return { runId: run.id, text, start, offset: size, running: row.status === 'running' };
     } finally {
       await handle.close();
     }
@@ -315,8 +329,17 @@ export class Supervisor {
     return started;
   }
 
-  /** The run's log from `offset` on; offset 0 with a shrunken file restarts it. */
-  async log(runId: number, offset = 0): Promise<{ runId: number; text: string; offset: number; running: boolean }> {
+  /**
+   * The run's log from `offset` on; offset 0 with a shrunken file restarts it.
+   * With `limit`, at most that many bytes from `offset`, starting on a whole
+   * line: `start` says where the text begins and `offset` where it ends, so a
+   * reader can page backwards through the file.
+   */
+  async log(
+    runId: number,
+    offset = 0,
+    limit?: number
+  ): Promise<{ runId: number; text: string; start: number; offset: number; running: boolean }> {
     const [row] = await this.db.query<{ log_path: string | null; status: string }[]>(
       'select log_path, status from crawler_run where id = ?',
       runId
@@ -326,9 +349,9 @@ export class Supervisor {
     try {
       const size = (await handle.stat()).size;
       const from = offset > size ? 0 : offset;
-      const buffer = Buffer.alloc(Math.max(0, size - from));
-      await handle.read(buffer, 0, buffer.length, from);
-      return { runId, text: buffer.toString('utf8'), offset: size, running: row.status === 'running' };
+      const to = limit === undefined ? size : Math.min(size, from + limit);
+      const { text, start } = limit === undefined ? await readBytes(handle, from, to) : await readLines(handle, from, to);
+      return { runId, text, start, offset: to, running: row.status === 'running' };
     } finally {
       await handle.close();
     }
