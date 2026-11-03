@@ -8,6 +8,7 @@ import { existsSync, readdirSync } from 'fs';
 import { isAbsolute, resolve, sep } from 'path';
 import type { Crawler } from './base-crawler';
 import { Config, SiteConfig } from './models';
+import { crawlerSources } from './crawler-sources';
 
 /** A site crawler module: its Crawler subclass, its optional entry page, and config. */
 export interface SiteModule {
@@ -100,8 +101,9 @@ function dropCoreCache() {
  */
 export function siteModule(name: string, config?: SitesConfig): SiteModule {
   const path = siteModulePath(name, config);
+  const sources = crawlerSources(existsSync(`${path}.ts`) ? `${path}.ts` : `${path}.js`);
   dropCoreCache();
-  for (const candidate of [`${path}.ts`, `${path}.js`, path]) {
+  for (const candidate of [...sources, path]) {
     try {
       delete require.cache[require.resolve(candidate)];
     } catch {

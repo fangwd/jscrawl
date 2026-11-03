@@ -80,6 +80,28 @@ test('an edited crawler is reloaded rather than served from the require cache', 
   }
 }, 120_000);
 
+test('an edited shared crawler module is reloaded in a long-lived process', async () => {
+  mkdirSync(`${FIXTURES}/lib`, { recursive: true });
+  const library = `${FIXTURES}/lib/profile.ts`;
+  const entry = `${FIXTURES}/shared.ts`;
+  writeFileSync(library, "export const seed = 'first';\n");
+  writeFileSync(entry, "import { seed } from './lib/profile'; export const SEED_URL = seed; export default class C {}\n");
+  const script = [
+    `const { siteModule } = require(${JSON.stringify(`${process.cwd()}/src/core/sites`)});`,
+    `const config = { sites: { dir: ${JSON.stringify(FIXTURES)} } };`,
+    `const before = siteModule('shared', config).SEED_URL;`,
+    `require('fs').writeFileSync(${JSON.stringify(library)}, "export const seed = 'second';\\n");`,
+    `const after = siteModule('shared', config).SEED_URL;`,
+    `console.log(JSON.stringify({ before, after }));`,
+  ].join('\n');
+  try {
+    const { stdout } = await promisify(execFile)('node', ['-r', 'ts-node/register', '-e', script], { cwd: process.cwd(), timeout: 90_000 });
+    expect(JSON.parse(stdout.trim())).toEqual({ before: 'first', after: 'second' });
+  } finally {
+    rmSync(entry); rmSync(library);
+  }
+}, 120_000);
+
 test('a crawler is loaded against the core on disk, and the logger and the registered domain are left alone', async () => {
   // The MCP tool server is long-lived: without dropping the core's cached copies,
   // a crawler that imports a helper added to src/core since the server started

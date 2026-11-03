@@ -26,7 +26,8 @@ import { getCrawler, sha1 } from '../core/utils';
 import { typecheckCrawler } from '../core/typecheck';
 import { lintCrawler } from '../core/lint';
 import { submitCrawler } from '../core/crawlersRepo';
-import { fixtureDir, siteModule, sitesDir } from '../core/sites';
+import { fixtureDir, siteModule, siteModulePath, siteNames, sitesDir } from '../core/sites';
+import { crawlerSources } from '../core/crawler-sources';
 import { FixtureEntry, fixtureContracts, fixturePages } from '../core/fixtures';
 import { snapshots } from '../core/snapshot';
 
@@ -675,7 +676,7 @@ function submitCrawlerTool(config: Config): DomainTool {
  */
 function checkCrawlerTool(config: Config): DomainTool {
   const validate = validateCrawlerTool(config);
-  return {
+  const checker: DomainTool = {
     name: 'checkCrawler',
     readOnly: true,
     description:
@@ -686,9 +687,26 @@ function checkCrawlerTool(config: Config): DomainTool {
       'Checks full buffered records even with limit 0. Missing contracts, omissions and unsupported sections fail. ' +
       'Runs by itself after each crawler edit and before a run may finish.',
     schema: {
-      file: z.string().describe('The crawler file, crawlers/<site>.ts'),
+      file: z.string().describe('The crawler file, crawlers/<site>.ts, or shared module under crawlers/lib/'),
     },
     async execute({ file }, ctx) {
+      if (/^crawlers\/lib\/[\w/-]+\.ts$/.test(file)) {
+        const changed = resolve(ctx.cwd, file);
+        const affected = siteNames(config).filter((site) => {
+          const path = siteModulePath(site, config);
+          return crawlerSources(`${path}.ts`).includes(changed);
+        });
+        if (!affected.length) throw new Error(`${file} has no site consumers yet; wire the profile into a site before validating it.`);
+        const results: string[] = [];
+        let failed = false;
+        for (const site of affected) {
+          try { results.push(await checker.execute({ file: `crawlers/${site}.ts` }, ctx)); }
+          catch (err: any) { failed = true; results.push(String(err.message ?? err)); }
+        }
+        const summary = `${failed ? 'failed' : 'passed'}: ${file} checked through ${affected.length} dependent site(s)\n${results.join('\n')}`;
+        if (failed) throw new Error(summary);
+        return summary;
+      }
       const site = /^crawlers\/([\w-]+)\.ts$/.exec(file)?.[1];
       if (!site) throw new Error(`${file} is not a crawler file (crawlers/<site>.ts)`);
       const fixtures = fixtureDir(site, config);
@@ -712,12 +730,12 @@ function checkCrawlerTool(config: Config): DomainTool {
       let ok = report.ok;
       const lines = [
         ...report.typecheck.diagnostics.slice(0, 10).map((d: any) => `${d.file ?? ''}:${d.line ?? ''} TS${d.code} ${d.message}`),
-        ...(report.rules ?? []).map((r: any) => `line ${r.line} [${r.rule}] ${r.message}`),
+        ...(report.rules ?? []).map((r: any) => `${r.file ?? file}:line ${r.line} [${r.rule}] ${r.message}`),
         ...(report.contracts ?? []).map((problem: string) => `CONTRACT ${problem}`),
         ...report.pages.map((page: any) => {
           const file = relative(ctx.cwd, page.file);
           if (!page.ok) return `FAILED ${file}: ${page.error}`;
-          const missing = expect === undefined ? [] : (domain().expectations.pageShortfalls?.(expect, page.tables) ?? []);
+          const missing = expect === undefined ? [] : (domain().expectations.pageShortfalls?.(expect, page.tables, page.type) ?? []);
           if (missing.length) {
             ok = false;
             return `MISSING ${file}: ${missing.join(', ')} - site.expect requires them on every page of this kind`;
@@ -730,6 +748,7 @@ function checkCrawlerTool(config: Config): DomainTool {
       return summary;
     },
   };
+  return checker;
 }
 
 function validateCrawlerTool(config: Config): DomainTool {
@@ -756,7 +775,9 @@ function validateCrawlerTool(config: Config): DomainTool {
           nextStep: 'Fix the compiler diagnostics, then rerun validateCrawler with the same fixtures.',
         }, null, 1);
       }
-      const rules = lintCrawler(await readFile(resolve(ctx.cwd, typecheck.file), 'utf8'));
+      const rules = (await Promise.all(typecheck.sources.map(async (file) =>
+        lintCrawler(await readFile(resolve(ctx.cwd, file), 'utf8')).map((finding) => ({ ...finding, file }))
+      ))).flat();
       const parsed = fixturePages().safeParse(args.pages);
       const contracts = parsed.success
         ? fixtureContracts(parsed.data)

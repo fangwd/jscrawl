@@ -33,7 +33,7 @@ export interface DomainConfig {
     parse(raw: unknown, siteName: string): unknown;
     shortfalls(expect: unknown, metrics: Record<string, number>): string[];
     /** What a test page's preview lacks of what site.expect requires of every page of its kind. */
-    pageShortfalls?(expect: unknown, tables: { [table: string]: { count: number; records: object[] } }): string[];
+    pageShortfalls?(expect: unknown, tables: { [table: string]: { count: number; records: object[] } }, pageType?: string): string[];
   };
   /** The domain's fixture contract: what a pages.json entry may carry beyond type, file and url, and what a page must yield. */
   fixtures?: {
@@ -41,7 +41,7 @@ export interface DomainConfig {
     /** Problems with the listing before any page runs: entries that lack what the domain requires. */
     contracts?(pages: FixtureEntry[]): string[];
     /** Problems with what the crawler extracted from a fixture page; `records` are the buffered rows by table. */
-    check(page: { entry: FixtureEntry; doc: XDocument; records: (table: string) => unknown[] }): { problems: string[]; summary?: string };
+    check(page: { entry: FixtureEntry; doc: XDocument; url: SiteUrl; records: (table: string) => unknown[] }): { problems: string[]; summary?: string };
   };
   /** Pages whose type their content contradicts, for the coverage report; candidates, not verdicts. */
   suspects?(db: CoreDatabase, siteId: number): Promise<Suspects[]>;
