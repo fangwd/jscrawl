@@ -4,6 +4,7 @@
 // urls, without putting thousands of rows in the agent's context.
 
 import { Database } from 'sqlex';
+import { domain } from './domain';
 import { URL_STATUS } from './inspect';
 import { Fetcher, fetchText, sitemapInventory } from './sitemap';
 
@@ -158,55 +159,12 @@ export async function coverage(
     },
     unqueued: groupByShape(unqueued),
     unlisted: groupByShape(unlisted),
-    suspects: [
-      await suspect(
-        db,
-        'product page scraped, saved no product and was not vouched for',
-        `select u.url, count(*) over () as total
-           from url u
-          where u.site_id = ? and u.type = 'product' and u.status = 2 and u.data is null
-            and not exists (select 1 from product_url pu where pu.url_id = u.id)
-          limit ?`,
-        siteId
-      ),
-      await suspect(
-        db,
-        'product page failed (type wrong, or extractor/fetch bug)',
-        `select u.url, u.status, count(*) over () as total
-           from url u
-          where u.site_id = ? and u.type = 'product' and u.status < 0
-          limit ?`,
-        siteId
-      ),
-      await suspect(
-        db,
-        'product in no category (the listing that carries it may not be crawled yet)',
-        `select min(u.url) as url, count(*) over () as total
-           from product p
-           join product_url pu on pu.product_id = p.id
-           join url u on u.id = pu.url_id
-          where p.site_id = ?
-            and not exists (select 1 from product_category pc where pc.product_id = p.id)
-          group by p.id
-          limit ?`,
-        siteId
-      ),
-      await suspect(
-        db,
-        'category page scraped, holds no products and was not vouched for (may be a landing page)',
-        `select u.url, count(*) over () as total
-           from url u
-           join category c on c.url_id = u.id
-          where u.site_id = ? and u.type = 'category' and u.status = 2 and u.data is null
-            and not exists (select 1 from product_category pc where pc.category_id = c.id)
-          limit ?`,
-        siteId
-      ),
-    ],
+    suspects: await (domain().suspects?.(db as any, siteId) ?? Promise.resolve([])),
   };
 }
 
-async function suspect(db: Database, label: string, sql: string, siteId: number): Promise<Suspects> {
+/** A group of candidate pages for a domain's coverage report: `sql` takes the site id and a sample size, and `count(*) over ()` as total. */
+export async function suspect(db: Database, label: string, sql: string, siteId: number): Promise<Suspects> {
   const rows = await db.query<{ url: string; status?: number; total: string | number }[]>(sql, siteId, SAMPLES);
   return {
     label,

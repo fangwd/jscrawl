@@ -9,8 +9,10 @@ import { IncomingMessage, ServerResponse, request } from 'http';
 import { resolve, sep } from 'path';
 import { Database } from 'sqlex';
 import { Response } from '../core/fetch';
-import { exportFeed, feedZip } from '../core/feed';
-import { inspectProduct, inspectUrl } from '../core/inspect';
+import { domain } from '../core/domain';
+import { agentSkills } from '../core/skills';
+import { createDomainApi, DOMAIN_API_PATH, serveDomainApi } from './domainApi';
+import { digits, readJson, sendJson } from './http';
 import { Config } from '../core/models';
 import { readOnlyQuery, tableColumns } from '../core/sql';
 import { Supervisor, SupervisorError } from '../core/supervisor';
@@ -30,6 +32,8 @@ export interface WebDeps {
 }
 
 export function webHandler(deps: WebDeps) {
+  // compiled once the schema is known, on the first request for it
+  let domainApi: ReturnType<typeof createDomainApi> | undefined;
   return async (req: IncomingMessage, res: ServerResponse) => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
@@ -39,6 +43,11 @@ export function webHandler(deps: WebDeps) {
       if (!tools && !url.pathname.startsWith('/api/')) return sendJson(res, 404, { error: 'Not found' });
       if (!isService(req, deps.apiToken)) return sendJson(res, 401, { error: 'The service token is required' });
       if (tools) return toTools(deps, req, res);
+      if (url.pathname === DOMAIN_API_PATH || url.pathname.startsWith(`${DOMAIN_API_PATH}/`)) {
+        if (!deps.db.schema) await deps.db.buildSchema();
+        domainApi ??= createDomainApi(deps.db);
+        return await serveDomainApi(domainApi, req, res, url);
+      }
       return await api(deps, req, res, url);
     } catch (err: any) {
       if (!res.headersSent) sendJson(res, 500, { error: String(err?.message ?? err) });
@@ -66,24 +75,9 @@ function toTools(deps: WebDeps, req: IncomingMessage, res: ServerResponse) {
   req.pipe(upstream);
 }
 
-function sendJson(res: ServerResponse, status: number, body?: unknown) {
-  const text = body === undefined ? '' : JSON.stringify(body);
-  res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-  res.end(text);
-}
-
-async function readJson(req: IncomingMessage): Promise<any> {
-  let body = '';
-  for await (const chunk of req) body += chunk;
-  if (!body) return {};
-  return JSON.parse(body);
-}
 
 /** Rows the dashboard's SQL console returns at most. */
 const SQL_MAX_ROWS = 1000;
-
-const digits = (value: string | undefined): number | null =>
-  value !== undefined && /^\d+$/.test(value) ? Number(value) : null;
 
 async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url: URL) {
   const { db, config } = deps;
@@ -207,6 +201,13 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
         return fail(res, err);
       }
     }
+    if (resource === 'urls' && rawId && sub === 'live-check' && extra === undefined) {
+      const urlId = digits(rawId);
+      if (urlId === null) return sendJson(res, 400, { error: 'Invalid url id' });
+      if (!domain().liveCheck) return sendJson(res, 404, { error: 'This domain has no live check' });
+      const result = await actions.liveCheckChild(urlId, deps.cwd);
+      return sendJson(res, result.status, result.body);
+    }
     if (resource === 'sites' && rawId && sub === 'reset-urls') {
       const siteId = await resolveSite(deps.supervisor, rawId);
       if (siteId === null) return sendJson(res, 404, { error: `No site ${rawId}` });
@@ -228,8 +229,17 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
 
   if (method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
 
+  if (resource === 'domain' && !rawId) {
+    const { name, urlTypes, inspectTool, feed, liveCheck, ui } = domain();
+    return sendJson(res, 200, { name, urlTypes, inspectTool, feed: !!feed, liveCheck: !!liveCheck, ui: ui ?? {} });
+  }
+
+  if (resource === 'skills' && !rawId) return sendJson(res, 200, await agentSkills());
+
   if (resource === 'docs' && rawId === 'feed-format' && !sub) {
-    const text = await readFile(resolve(deps.cwd ?? process.cwd(), 'docs/feed-format.md'), 'utf8');
+    const docs = domain().feed?.docs;
+    if (!docs) return sendJson(res, 404, { error: 'This domain has no feed' });
+    const text = await readFile(docs, 'utf8');
     res.writeHead(200, { 'content-type': 'text/markdown; charset=utf-8', 'cache-control': 'no-cache' });
     return res.end(text);
   }
@@ -264,7 +274,6 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
     const totals = {
       sites: sites.length,
       urls: sites.reduce((n, s) => n + sum(s.urls), 0),
-      products: sites.reduce((n, s) => n + s.products, 0),
       openIssues: sites.reduce((n, s) => n + s.issues.open, 0),
     };
     return sendJson(res, 200, { sites, totals });
@@ -282,32 +291,19 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
         return sendJson(res, 404, { error: String(err instanceof Error ? err.message : err) });
       }
     }
-    if (sub === 'categories') {
-      return sendJson(res, 200, { categories: await read.siteCategories(db, siteId) });
-    }
-    if (sub === 'products') {
-      return sendJson(
-        res,
-        200,
-        await read.listProducts(db, siteId, {
-          categoryId: intParam('categoryId'),
-          q: params.get('q') ?? undefined,
-          page: intParam('page'),
-          pageSize: intParam('pageSize'),
-        })
-      );
-    }
     if (sub === 'feed.zip' && extra === undefined) {
+      const feed = domain().feed;
+      if (!feed) return sendJson(res, 404, { error: 'This domain has no feed' });
       const site = await read.siteDetail(db, siteId);
       if (!site) return sendJson(res, 404, { error: `No site ${siteId}` });
       try {
-        const zip = feedZip(await exportFeed(db, site.name));
+        const { bytes } = await feed.export(site.id, db as any);
         res.writeHead(200, {
-          'content-type': 'application/zip',
-          'content-disposition': `attachment; filename="${site.name}-feed.zip"`,
+          'content-type': feed.contentType,
+          'content-disposition': `attachment; filename="${feed.filename(site)}"`,
           'cache-control': 'no-store',
         });
-        return res.end(zip);
+        return res.end(bytes);
       } catch (err: any) {
         return sendJson(res, 409, { error: String(err?.message ?? err) });
       }
@@ -354,26 +350,10 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
       const detail = await read.urlDetail(db, config, urlId, deps.cwd);
       return detail ? sendJson(res, 200, detail) : sendJson(res, 404, { error: `No url ${urlId}` });
     }
-    if (sub === 'data') {
-      const report = await inspectUrl(db, urlId);
-      return report ? sendJson(res, 200, report) : sendJson(res, 404, { error: `No url ${urlId}` });
-    }
-    if (sub === 'live') {
-      const [row] = await db.query<{ url: string }[]>('select url from url where id = ?', urlId);
-      if (!row) return sendJson(res, 404, { error: `No url ${urlId}` });
-      return sendJson(res, 200, await read.liveProduct(row.url));
-    }
     if (sub === 'snapshot') {
       return snapshot(deps, res, urlId, extra);
     }
     return sendJson(res, 404, { error: 'Not found' });
-  }
-
-  if (resource === 'products' && rawId && !sub) {
-    const productId = digits(rawId);
-    if (productId === null) return sendJson(res, 400, { error: 'Invalid product id' });
-    const report = await inspectProduct(db, productId);
-    return report ? sendJson(res, 200, report) : sendJson(res, 404, { error: `No product ${productId}` });
   }
 
   if (resource === 'sql' && rawId === 'schema') {

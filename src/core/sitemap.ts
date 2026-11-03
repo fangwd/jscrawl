@@ -5,7 +5,7 @@
 import { gunzipSync } from 'zlib';
 import { parseStringPromise } from 'xml2js';
 import { request } from 'yareq';
-import { REQUEST_HEADERS } from './crawler';
+import { REQUEST_HEADERS } from './base-crawler';
 
 export interface UrlEntry {
   loc: string;

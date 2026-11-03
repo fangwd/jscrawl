@@ -28,7 +28,7 @@
   },
   "include": [
     "./src/**/*",
-    "./crawlers/**/*"
+    "./scripts/**/*"
   ],
   "exclude": [
     "./build"

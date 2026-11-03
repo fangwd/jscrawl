@@ -8,14 +8,13 @@ import { readFile, readdir, rm } from 'fs/promises';
 import { join, relative, resolve, sep } from 'path';
 import { promisify } from 'util';
 import { z } from 'zod';
-import { FixturePages } from './completeness';
+import { fixturePages } from './fixtures';
 
 const run = promisify(execFile);
 const REMOTE = 'origin';
 const BASE = 'main';
 
 /** The test pages a site records for its checks, in `fixtures/<site>/pages.json`. */
-export { FixturePages } from './completeness';
 
 async function git(dir: string, args: string[], env?: NodeJS.ProcessEnv): Promise<string> {
   const { stdout } = await run('git', args, { cwd: dir, env: { ...process.env, ...env }, maxBuffer: 64 * 1024 * 1024 });
@@ -35,9 +34,9 @@ async function filesUnder(root: string, path: string): Promise<string[]> {
 export async function submissionFiles(dir: string, site: string): Promise<string[]> {
   const fixtures = join('fixtures', site);
   const listing = join(fixtures, 'pages.json');
-  let pages: z.infer<typeof FixturePages>;
+  let pages: ReturnType<typeof fixturePages>['_output'];
   try {
-    pages = FixturePages.parse(JSON.parse(await readFile(resolve(dir, listing), 'utf8')));
+    pages = fixturePages().parse(JSON.parse(await readFile(resolve(dir, listing), 'utf8')));
   } catch (err: any) {
     throw new Error(`${listing} must list the site's test pages before it is submitted: ${String(err.message ?? err).slice(0, 300)}`);
   }

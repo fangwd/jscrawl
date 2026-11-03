@@ -1,18 +1,13 @@
 {
-  "name": "jscrawl",
+  "name": "@jscrawl/core",
   "version": "0.1.0",
   "scripts": {
-    "jscrawl:start": "bin/start.sh",
-    "build": "tsc -D",
-    "jscrawl": "ts-node src/cli.ts",
-    "jscrawl:populate": "ts-node src/cli.ts --populate",
+    "build": "tsc -p tsconfig.build.json",
     "watch": "tsc --watch",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "reset": "bin/reset.sh",
-    "reset:test": "bin/reset.sh --test --yes",
-    "db:migrate": "ts-node src/migrate.ts",
-    "serve": "node -r ts-node/register src/server.ts",
-    "mcp": "ts-node src/mcp/server.ts"
+    "prepare": "tsc -p tsconfig.build.json",
+    "test:schema": "ts-node scripts/test-schema.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "author": "Weidong Fang",
   "license": "UNLICENSED",
@@ -49,6 +44,9 @@
       ]
     },
     "testRegex": "/test/.*\\.test\\.ts$",
+    "setupFiles": [
+      "<rootDir>/test/support/domain.ts"
+    ],
     "moduleFileExtensions": [
       "ts",
       "tsx",
@@ -63,5 +61,36 @@
     ],
     "verbose": true,
     "maxWorkers": 1
-  }
+  },
+  "description": "The crawl core: the engine, the operator surface and the agent tools; a domain app configures it (separate-core-app-impl.md).",
+  "main": "./dist/core/domain.js",
+  "types": "./dist/core/domain.d.ts",
+  "exports": {
+    "./extract": {
+      "types": "./dist/core/extract/index.d.ts",
+      "default": "./dist/core/extract/index.js"
+    },
+    "./mcp/*": {
+      "types": "./dist/mcp/*.d.ts",
+      "default": "./dist/mcp/*.js"
+    },
+    "./web/*": {
+      "types": "./dist/web/*.d.ts",
+      "default": "./dist/web/*.js"
+    },
+    "./entries/*": {
+      "types": "./dist/entries/*.d.ts",
+      "default": "./dist/entries/*.js"
+    },
+    "./*": {
+      "types": "./dist/core/*.d.ts",
+      "default": "./dist/core/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "etc/schema.sql",
+    "etc/migrate-*.sql",
+    "skills"
+  ]
 }

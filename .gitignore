@@ -1,11 +1,13 @@
 # Dependencies
 node_modules/
 
-# Site crawlers: a separate git repository (see crawlers/README.md).
+# The site crawlers: a separate repository, checked out here by the running
+# deployment until it moves to aether-feed; never the core's.
 crawlers/
 
-# Build output: tsc (build/src, build/crawlers) and the rsbuild SPA (build/web).
+# Build output: tsc (build/src, build/crawlers), the package build (dist/) and the rsbuild SPA (build/web).
 build/
+dist/
 
 # Runtime state: saved pages (data/html, data/images), crawl logs (data/logs),
 # and the e2e store. bin/reset.sh clears these deliberately.

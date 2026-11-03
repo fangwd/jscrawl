@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { CrawlerDatabase } from './database';
+import { domain } from './domain';
 import { siteModule } from './sites';
 import { Config, Site } from './models';
 import { Database, Filter } from 'sqlex';
@@ -51,7 +51,7 @@ export async function getCrawler(config: Config, site: string | Site) {
     site = site.name;
   }
   const Plugin = siteModule(site, config).default;
-  const db = new CrawlerDatabase(config.database);
+  const db = new (domain().database)(config.database);
   await db.init(site);
   return new Plugin(db, config);
 }

@@ -6,19 +6,19 @@
 
 import { existsSync, readdirSync } from 'fs';
 import { isAbsolute, resolve, sep } from 'path';
-import type Crawler from './crawler';
+import type { Crawler } from './base-crawler';
 import { Config, SiteConfig } from './models';
 
 /** A site crawler module: its Crawler subclass, its optional entry page, and config. */
 export interface SiteModule {
-  default: typeof Crawler;
+  default: new (db: any, config: Config) => Crawler<any>;
   /** The home page to queue when the site is populated. Optional. */
   SEED_URL?: string;
   site?: SiteConfig;
 }
 
-/** The repository root; this file is `<root>/src/core/sites.ts`. */
-const ROOT = resolve(__dirname, '..', '..');
+/** The deployment's root: where it runs from, which is where its crawlers checkout lives. */
+const ROOT = process.cwd();
 export const DEFAULT_SITES_DIR = resolve(ROOT, 'crawlers');
 
 /** Site names become file names, database rows and shell arguments. */
@@ -71,14 +71,16 @@ export function siteNames(config?: SitesConfig): string[] {
 }
 
 /**
- * The core's own modules stay cached when a crawler is loaded, except these: the
- * logger owns process-wide winston transports, so a second copy would open the
- * log files again, and this module is the loader itself.
+ * The core's own modules that stay cached when a crawler is loaded: the logger
+ * owns process-wide winston transports, so a second copy would open the log
+ * files again; the domain registry holds the domain the deployment registered
+ * at start, which a second copy would not have; and this module is the loader
+ * itself.
  */
-const KEEP_CACHED = new Set([__filename, resolve(__dirname, 'logger.ts'), resolve(__dirname, 'logger.js')]);
+const KEEP_CACHED = new Set([__filename, ...['logger', 'domain'].flatMap((name) => [resolve(__dirname, `${name}.ts`), resolve(__dirname, `${name}.js`)])]);
 
 /**
- * Drops the cached copies of jscrawl's own core modules, so a crawler is loaded
+ * Drops the cached copies of jscrawl's own core modules but those, so a crawler is loaded
  * against the code on disk. A long-lived process - the MCP tool server behind
  * `jscrawl_scrapePreview` - otherwise runs the core it compiled at startup, and a
  * crawler importing a helper added since then does not compile at all.

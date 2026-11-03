@@ -3,7 +3,7 @@
 // populate tool, so creating a crawler and registering it cannot drift apart.
 
 import { Database } from 'sqlex';
-import { parseExpectations } from './expect';
+import { domain } from './domain';
 import { Config, PageSnapshots } from './models';
 import { siteModule, siteNames, sitesDir } from './sites';
 import { sha1 } from './utils';
@@ -23,7 +23,7 @@ export async function registerSite(db: Database, config: Config, name: string): 
   }
   const { currency, locale, scope, refresh, expect, ...rest } = site;
   // stored as jsonb; sqlex types a document column as plain JSON
-  const expectations = expect === undefined ? null : (parseExpectations(name, expect) as Record<string, any>);
+  const expectations = expect === undefined ? null : (domain().expectations.parse(expect, name) as Record<string, any>);
   const settings = { ...rest, refreshMinutes: refresh === undefined ? null : refreshMinutes(name, refresh) };
   if (scope !== undefined && (typeof scope !== 'string' || !scope.trim())) {
     throw new Error(`crawlers/${name}.ts: scope must be a non-empty description`);

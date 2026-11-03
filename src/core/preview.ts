@@ -4,25 +4,21 @@
 
 import { Record } from 'sqlex';
 import { parse } from 'gumbo-html';
-import Crawler from './crawler';
+import { Crawler } from './base-crawler';
+import { CoreDatabase } from './base-database';
+import { domain } from './domain';
 import { readPage } from './fetch';
-import { CrawlerDatabase } from './database';
 import { siteModule } from './sites';
 import { Config, CrawlerOptions, SiteUrl } from './models';
-import { checkCompleteness, CompletenessReport, SectionContract } from './completeness';
+import type { FixtureEntry } from './fixtures';
 
 export interface PreviewTable {
   count: number;
   records: object[];
 }
 
-/** One saved page to run through a crawler. */
-export interface PreviewPage {
-  type: string;
-  file: string;
-  url?: string;
-  sections?: SectionContract[];
-}
+/** One saved page to run through a crawler: a fixture entry, its file resolved. */
+export type PreviewPage = FixtureEntry;
 
 /** The outcome for one page: its tables, or the error the crawler threw. */
 export interface PreviewPageResult {
@@ -31,7 +27,8 @@ export interface PreviewPageResult {
   url: string;
   ok: boolean;
   error?: string;
-  completeness?: CompletenessReport;
+  /** The domain's verdict on what the page yielded, when it has a fixture contract. */
+  check?: { problems: string[]; summary?: string };
   tables: { [table: string]: PreviewTable };
 }
 
@@ -40,7 +37,7 @@ const label = (record: any) => record.code ?? record.url ?? record.name ?? recor
 
 async function previewDatabase(config: Config, name: string) {
   const Plugin = siteModule(name, config).default;
-  const db = new CrawlerDatabase(config.database);
+  const db = new (domain().database)(config.database);
   await db.buildSchema();
   if (!(await db.init(name))) {
     // not registered yet: a stand-in site, as nothing is flushed
@@ -54,14 +51,14 @@ async function previewDatabase(config: Config, name: string) {
  * `<file>.fetches` (a crawl snapshot already has the crawl's) and replayed from
  * there, so a fixture is checked against the same responses each time.
  */
-function previewCrawler(Plugin: any, db: CrawlerDatabase, config: Config, file: string): Crawler {
+function previewCrawler(Plugin: any, db: CoreDatabase, config: Config, file: string): Crawler {
   const crawler: Crawler = new Plugin(db, config);
   crawler.fetches = { dir: `${file}.fetches` };
   return crawler;
 }
 
 /** The tables with records, optionally filtered to the names the caller asked for. */
-function previewTables(db: CrawlerDatabase, limit: number, tables?: string[]): { [table: string]: PreviewTable } {
+function previewTables(db: CoreDatabase, limit: number, tables?: string[]): { [table: string]: PreviewTable } {
   const out: { [table: string]: PreviewTable } = {};
   for (const table of db.tableList.filter((t) => t.recordList.length > 0)) {
     if (tables && !tables.includes(table.name)) continue;
@@ -122,13 +119,14 @@ export async function scrapePreviews(
         const response = await readPage(page.file, pageUrl);
         // Source evidence comes from the fixture, independently of handlers
         // overriding scrape() or replacing/mutating their working document.
-        const source = page.sections ? parse(response.text(), { baseUrl: response.url }) : undefined;
+        const fixtures = domain().fixtures;
+        const source = fixtures ? parse(response.text(), { baseUrl: response.url }) : undefined;
         await crawler.scrape(response, url);
-        if (page.sections) {
-          result.completeness = checkCompleteness(source!, page.sections, (table) => db.table(table).recordList);
-          if (!result.completeness.ok) {
+        if (fixtures) {
+          result.check = fixtures.check({ entry: page, doc: source!, records: (table) => db.table(table).recordList });
+          if (result.check.problems.length) {
             result.ok = false;
-            result.error = `Incomplete extraction: ${result.completeness.problems.join('; ')}`;
+            result.error = `Incomplete extraction: ${result.check.problems.join('; ')}`;
           }
         }
         result.tables = previewTables(db, limit, tables);

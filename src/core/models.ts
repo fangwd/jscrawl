@@ -1,5 +1,4 @@
 import { ConnectionInfo } from "sqlex";
-import type { Expectations } from "./expect";
 
 export type Config = {
   database: ConnectionInfo;
@@ -62,11 +61,12 @@ export interface SiteConfig {
    */
   refresh?: string;
   /**
-   * What the request implies a finished crawl holds, e.g. `{ products: [40, 80],
-   * fields: ['price', 'image'] }`: checked on the product test pages at build
+   * What the request implies a finished crawl holds, in the domain's terms,
+   * e.g. `{ products: [40, 80], fields: ['price', 'image'] }` for a shop:
+   * parsed by the domain at registration, checked on the test pages at build
    * time and on the whole catalogue after each complete crawl.
    */
-  expect?: Expectations;
+  expect?: unknown;
   currency?: string;
   locale?: string;
 }
@@ -77,7 +77,7 @@ export interface Site {
   currency: string | null;
   locale: string | null;
   scope: string | null;
-  expect: Expectations | null;
+  expect: unknown | null;
   crawler: CrawlerOptions;
 }
 

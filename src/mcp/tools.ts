@@ -10,11 +10,10 @@ import { request } from 'yareq';
 import { gunzipSync, gzip } from 'zlib';
 import { promisify } from 'util';
 import { z } from 'zod';
-import { REQUEST_HEADERS } from '../core/crawler';
+import { REQUEST_HEADERS } from '../core/base-crawler';
 import { coverage as buildCoverage, CoverageReport, ShapeGroup, urlPath } from '../core/coverage';
 import { closingBracket, embeddedJson, jsonLd } from '../core/extract';
 import { sameProblem } from '../core/issues';
-import { describeGaps, exportFeed, feedZip } from '../core/feed';
 import { inspectUrl as buildUrlReport, listSnapshots, URL_STATUS, UrlReport } from '../core/inspect';
 import { Config } from '../core/models';
 import { probePage, ProbeReport } from '../core/pageprobe';
@@ -22,13 +21,13 @@ import { scrapePreview, scrapePreviews } from '../core/preview';
 import { describeFailure, describeRegistration, populateSites } from '../core/register';
 import { readPage } from '../core/fetch';
 import { readOnlyQuery, tableColumns } from '../core/sql';
+import { crawledUrlTypes, domain } from '../core/domain';
 import { getCrawler, sha1 } from '../core/utils';
 import { typecheckCrawler } from '../core/typecheck';
 import { lintCrawler } from '../core/lint';
 import { submitCrawler } from '../core/crawlersRepo';
 import { fixtureDir, siteModule, sitesDir } from '../core/sites';
-import { catalogueCounts, catalogueShortfalls, EXPECTED_FIELDS, pageShortfalls, parseExpectations, REQUIRED_SHARE } from '../core/expect';
-import { FixturePage, FixturePages } from '../core/completeness';
+import { FixtureEntry, fixtureContracts, fixturePages } from '../core/fixtures';
 import { snapshots } from '../core/snapshot';
 
 const gzipBody = promisify(gzip);
@@ -56,8 +55,6 @@ export interface DomainToolDeps {
   jscrawlUrl: string;
   /** The service token the jscrawl API takes as a bearer (JSCRAWL_API_TOKEN). */
   apiToken?: string;
-  /** imaged, the image service whose product_images job labels gallery images. */
-  imagedUrl: string;
 }
 
 const WEBFETCH_DESCRIPTION =
@@ -365,11 +362,10 @@ function inspectUrl(db: Database, config: Config): DomainTool {
     name: 'inspectUrl',
     readOnly: true,
     description:
-      'Everything the crawler knows about one page, in a single read-only call: the url row and its status, ' +
-      'the site, the latest fetch (http status / error), the page snapshot policy (gzip/raw/off), saved snapshot path(s), and the ' +
-      'catalogue scraped from it (product, variants with their option values and latest price observation, ' +
-      'attributes, images, assets, categories). Accepts the page url or its numeric url id. ' +
-      'Use this first when verifying what was scraped from a url.',
+      'What the crawl knows about one page, in a single read-only call: the url row and its status, the site, ' +
+      'the latest fetch (http status / error), the page snapshot policy (gzip/raw/off), saved snapshot path(s), and ' +
+      `the urls it queued. What the page produced is jscrawl_${domain().inspectTool}'s. Accepts the page url or its ` +
+      'numeric url id. Use this first when verifying what was scraped from a url.',
     schema: {
       url: z.string().describe('The page url, or its numeric url id'),
     },
@@ -397,7 +393,7 @@ async function urlReportText(db: Database, config: Config, target: string, ctx: 
 
 /** The tool's text view of a UrlReport. */
 function renderUrlReport(report: UrlReport, snapshots: string[]): string {
-  const { url: u, lastFetch: f, products } = report;
+  const { url: u, lastFetch: f } = report;
   const lines: string[] = [];
   lines.push(`url ${u.url}`);
   lines.push(
@@ -411,82 +407,12 @@ function renderUrlReport(report: UrlReport, snapshots: string[]): string {
       : 'latest fetch: (none recorded)'
   );
       lines.push(`saved snapshots: ${snapshots.length ? snapshots.join(', ') : '(none found)'}`);
-      lines.push(`products scraped from this url: ${products.length}`);
-      if (products.length === 0 && u.type === 'product') {
-        lines.push('  (a product page with no product rows means the scrape saved nothing - likely a bug)');
-      }
-      if (report.listed.length) {
-        lines.push(`products listed on this page: ${report.listed.length} (basics saved; pages ${report.listed.every((p) => p.pageStatus === 2) ? 'scraped' : 'queued or pending'})`);
-      }
       if (report.queued.length) {
         lines.push(`urls enqueued from this page: ${report.queued.length}`);
         for (const q of report.queued.slice(0, 10)) lines.push(`      - [${q.type}] ${q.url}`);
         if (report.queued.length > 10) lines.push(`      ... ${report.queued.length - 10} more`);
       }
-
-  products.forEach((p, i) => {
-    lines.push(
-      `[${i + 1}] ${p.code}${p.name ? ' - ' + p.name : ''}  (product.status=${p.status}${p.brand ? `, brand=${p.brand}` : ''})`
-    );
-    if (p.ratingValue != null || p.reviewCount != null) {
-      lines.push(`    rating=${p.ratingValue ?? '-'} reviews=${p.reviewCount ?? '-'}`);
-    }
-    if (p.categories.length) {
-      lines.push(`    categories: ${p.categories.map((c) => c.name + (c.isPrimary ? ' (primary)' : '')).join(', ')}`);
-    }
-    lines.push(`    variants: ${p.variants.length}`);
-    for (const v of p.variants) {
-      const bits = [
-        v.code ? `code=${v.code}` : 'default',
-        v.name ? `name=${v.name}` : '',
-        v.sku ? `sku=${v.sku}` : '',
-        v.gtin ? `gtin=${v.gtin}` : '',
-        v.price != null ? `price=${v.price}` : 'price=?',
-        v.compareAtPrice != null ? `was=${v.compareAtPrice}` : '',
-        v.availability ? `avail=${v.availability}` : 'avail=?',
-        v.stockQty != null ? `stock=${v.stockQty}` : '',
-        v.unitPrice != null ? `unit=${v.unitPrice}${v.unit ? '/' + v.unit : ''}` : '',
-      ].filter(Boolean);
-      lines.push(`      - ${bits.join(' ')}`);
-      const opts = v.options.map((x) => `${x.axis}=${x.value}`).join(', ');
-      if (opts) lines.push(`          options: ${opts}`);
-      if (v.lastPrice) {
-        lines.push(
-          `          last observed: ${v.lastPrice.observedAt} ${v.lastPrice.currency ?? ''} price=${v.lastPrice.price}` +
-            (v.lastPrice.availability ? ` avail=${v.lastPrice.availability}` : '')
-        );
-      }
-    }
-    if (p.attributes.length) {
-      lines.push(`    attributes: ${p.attributes.length}`);
-      for (const a of p.attributes) {
-        const grp = a.groupName ? `[${a.groupName}] ` : '';
-        const sel =
-          (a.minSelect != null || a.maxSelect != null ? ` (select ${a.minSelect ?? 0}..${a.maxSelect ?? '*'})` : '') +
-          (a.allowQuantity ? ' (values repeatable)' : '');
-        const vals = a.values
-          .map(
-            (v) =>
-              v.value +
-              (v.priceDelta != null ? ` (${v.priceDelta > 0 ? '+' : ''}${v.priceDelta})` : '') +
-              (v.isDefault ? ' *' : '') +
-              (v.isAvailable === false ? ' [unavailable]' : '')
-          )
-          .join(', ');
-        lines.push(`      - ${grp}${a.name}${sel}${vals ? ': ' + vals : ''}`);
-      }
-    }
-    if (p.images.length) {
-      lines.push(`    images: ${p.images.length}`);
-      for (const im of p.images.slice(0, 20)) lines.push(`      - [${im.role}${im.pure === null ? '' : im.pure ? ', pure' : ', noise'}] ${im.url}`);
-      if (p.images.length > 20) lines.push(`      ... ${p.images.length - 20} more`);
-    }
-    if (p.assets.length) {
-      lines.push(`    assets: ${p.assets.length}`);
-      for (const as of p.assets) lines.push(`      - [${as.kind}] ${as.name} = ${String(as.value).slice(0, 200)}`);
-    }
-  });
-
+      lines.push(`what the page produced: jscrawl_${domain().inspectTool} shows it`);
   return lines.join('\n');
 }
 
@@ -594,7 +520,7 @@ function scrapePreviewTool(config: Config): DomainTool {
       'every change to a crawler, re-run it to see the effect.',
     schema: {
       site: z.string().describe('The site crawler name (crawlers/<site>.ts)'),
-      type: z.enum(['seed', 'category', 'product']).describe('Page type: seed, category or product'),
+      type: z.string().describe(`Page type: ${crawledUrlTypes().join(', ')}`),
       file: z.string().describe('Path to the saved page'),
       url: z.string().optional().describe('The url the saved page was fetched from'),
       limit: z.number().int().optional().describe('Records per table (default 30)'),
@@ -627,9 +553,9 @@ function dryRunTool(config: Config): DomainTool {
     schema: {
       site: z.string().describe('The site crawler name (crawlers/<site>.ts)'),
       pages: z
-        .array(FixturePage)
+        .array(z.object({ type: z.string(), file: z.string(), url: z.string().optional() }).passthrough())
         .min(1)
-        .describe('Saved pages to run, in order'),
+        .describe("Saved pages to run, in order; an entry may carry the domain's fixture contract (pages.json fields)"),
       tables: z.array(z.string()).optional().describe('Only show these tables, e.g. ["product", "product_image"]'),
       limit: z.number().int().optional().describe('Records per table (default 30)'),
     },
@@ -638,7 +564,7 @@ function dryRunTool(config: Config): DomainTool {
       const results = await scrapePreviews(
         config,
         site,
-        pages.map((page: z.infer<typeof FixturePage>) => ({ ...page, file: resolve(ctx.cwd, page.file) })),
+        pages.map((page: FixtureEntry) => ({ ...page, file: resolve(ctx.cwd, page.file) })),
         limit,
         tables
       );
@@ -653,10 +579,9 @@ function checkExpectationsTool(db: Database): DomainTool {
     name: 'checkExpectations',
     readOnly: true,
     description:
-      'Compare a site\'s crawled catalogue with what its crawler expects (site.expect: a product count range and ' +
-      `fields every product carries, met when ${REQUIRED_SHARE * 100}% of products have them): the product count, how ` +
-      'many products carry each field, and every shortfall. The server runs the same check after each complete crawl ' +
-      'and raises an acceptance issue for a shortfall. Products are those the feed exports: active, with a variant.',
+      "Compare a site's crawled catalogue with what its crawler expects (site.expect, in the domain's terms): every " +
+      'metric of the catalogue, and every shortfall. The server runs the same check after each complete crawl and ' +
+      'raises an acceptance issue for a shortfall. The domain skills say what the metrics and expectations mean.',
     schema: {
       site: z.string().describe('The site name'),
     },
@@ -664,14 +589,16 @@ function checkExpectationsTool(db: Database): DomainTool {
       ctx.signal?.throwIfAborted();
       const [row] = await db.query<{ id: number; expect: any }[]>('select id, expect from site where name = ?', site);
       if (!row) return `No site named "${site}".`;
-      const counts = await catalogueCounts(db, Number(row.id));
-      const share = (n: number) => (counts.products ? `${Math.round((100 * n) / counts.products)}%` : '-');
-      const lines = [
-        `expects: ${row.expect ? JSON.stringify(row.expect) : 'nothing (the crawler sets no site.expect)'}`,
-        `products: ${counts.products}`,
-        ...EXPECTED_FIELDS.map((field) => `  ${field}: ${counts.fields[field]} (${share(counts.fields[field])})`),
-      ];
-      const shortfalls = catalogueShortfalls(row.expect, counts);
+      const { metrics: measure, metricRules, expectations } = domain();
+      const metrics = await measure(Number(row.id), db as any);
+      const lines = [`expects: ${row.expect ? JSON.stringify(row.expect) : 'nothing (the crawler sets no site.expect)'}`];
+      for (const [name, value] of Object.entries(metrics)) {
+        const rule = metricRules[name]?.regression;
+        const of = rule?.kind === 'share' ? metrics[rule.of] : undefined;
+        const share = of ? ` (${Math.round((100 * value) / of)}%)` : '';
+        lines.push(`${metricRules[name]?.label ?? name}: ${value}${share}`);
+      }
+      const shortfalls = expectations.shortfalls(row.expect, metrics);
       lines.push(shortfalls.length ? `shortfalls:\n${shortfalls.map((s) => `  - ${s}`).join('\n')}` : 'meets its expectations');
       return lines.join('\n');
     },
@@ -684,10 +611,9 @@ function crawlHistoryTool(db: Database): DomainTool {
     name: 'crawlHistory',
     readOnly: true,
     description:
-      'A site\'s state at the end of each of its recent complete crawls, newest first: active products, how many ' +
-      'carry each field (price, availability, image, category, description, brand), and product pages scraped and ' +
-      'failed. The server compares each complete crawl with the one before and raises a regression issue when ' +
-      'products, a field\'s share or the failing pages move the wrong way by a wide margin.',
+      "A site's state at the end of each of its recent complete crawls, newest first: the domain's metrics, and its " +
+      'pages scraped and failed. The server compares each complete crawl with the one before and raises a regression ' +
+      "issue when a metric or the failing pages move the wrong way by the margin the domain declares.",
     schema: {
       site: z.string().describe('The site name'),
       limit: z.number().int().min(1).max(50).optional().describe('How many crawls (default 10)'),
@@ -698,10 +624,13 @@ function crawlHistoryTool(db: Database): DomainTool {
       if (!row) return `No site named "${site}".`;
       const history = await snapshots(db, Number(row.id), limit);
       if (history.length === 0) return `${site} has not completed a crawl yet.`;
+      const { metricRules } = domain();
       return history
         .map((s) => {
-          const fields = EXPECTED_FIELDS.map((field) => `${field} ${s.fields[field]}`).join(', ');
-          return `${new Date(s.takenAt).toISOString()}: ${s.products} products (${fields}); product pages ${s.pages.done} scraped, ${s.pages.failed} failed`;
+          const metrics = Object.entries(s.metrics)
+            .map(([name, value]) => `${metricRules[name]?.label ?? name} ${value}`)
+            .join(', ');
+          return `${new Date(s.takenAt).toISOString()}: ${metrics}; pages ${s.pages.done} scraped, ${s.pages.failed} failed`;
         })
         .join('\n');
     },
@@ -764,9 +693,9 @@ function checkCrawlerTool(config: Config): DomainTool {
       if (!site) throw new Error(`${file} is not a crawler file (crawlers/<site>.ts)`);
       const fixtures = fixtureDir(site, config);
       const listing = relative(ctx.cwd, join(fixtures, 'pages.json'));
-      let pages: z.infer<typeof FixturePages>;
+      let pages: FixtureEntry[];
       try {
-        pages = FixturePages.parse(JSON.parse(await readFile(join(fixtures, 'pages.json'), 'utf8')));
+        pages = fixturePages().parse(JSON.parse(await readFile(join(fixtures, 'pages.json'), 'utf8')));
       } catch (err: any) {
         throw new Error(
           `${listing} must list the site's test pages with type, file (relative to its directory) and optional url; product entries need a sections ` +
@@ -778,8 +707,8 @@ function checkCrawlerTool(config: Config): DomainTool {
       const report = JSON.parse(
         await validate.execute({ site, pages: pages.map((page) => ({ ...page, file: join(fixtures, page.file) })), limit: 50 }, ctx)
       );
-      const expect = report.typecheck.ok ? siteModule(site, config).site?.expect : undefined;
-      if (expect !== undefined) parseExpectations(site, expect);
+      const raw = report.typecheck.ok ? siteModule(site, config).site?.expect : undefined;
+      const expect = raw === undefined ? undefined : domain().expectations.parse(raw, site);
       let ok = report.ok;
       const lines = [
         ...report.typecheck.diagnostics.slice(0, 10).map((d: any) => `${d.file ?? ''}:${d.line ?? ''} TS${d.code} ${d.message}`),
@@ -788,12 +717,12 @@ function checkCrawlerTool(config: Config): DomainTool {
         ...report.pages.map((page: any) => {
           const file = relative(ctx.cwd, page.file);
           if (!page.ok) return `FAILED ${file}: ${page.error}`;
-          const missing = page.type === 'product' ? pageShortfalls(expect, page.tables) : [];
+          const missing = expect === undefined ? [] : (domain().expectations.pageShortfalls?.(expect, page.tables) ?? []);
           if (missing.length) {
             ok = false;
-            return `MISSING ${file}: ${missing.join(', ')} - site.expect.fields requires them on every product`;
+            return `MISSING ${file}: ${missing.join(', ')} - site.expect requires them on every page of this kind`;
           }
-          return `ok ${file}: ${Object.entries(page.tables).map(([table, t]: [string, any]) => `${table} ${t.count}`).join(', ') || 'no records'}${page.completeness ? `; ${page.completeness.sections.length} sections checked` : ''}`;
+          return `ok ${file}: ${Object.entries(page.tables).map(([table, t]: [string, any]) => `${table} ${t.count}`).join(', ') || 'no records'}${page.check?.summary ? `; ${page.check.summary}` : ''}`;
         }),
       ];
       const summary = `${ok ? 'passed' : 'failed'}: ${site} on ${pages.length} test page(s) from ${listing}\n${lines.join('\n')}`;
@@ -828,10 +757,9 @@ function validateCrawlerTool(config: Config): DomainTool {
         }, null, 1);
       }
       const rules = lintCrawler(await readFile(resolve(ctx.cwd, typecheck.file), 'utf8'));
-      const parsed = FixturePages.safeParse(args.pages);
+      const parsed = fixturePages().safeParse(args.pages);
       const contracts = parsed.success
-        ? parsed.data.filter((page) => page.type === 'product' && !page.sections?.length)
-          .map((page) => `${page.file}: product fixtures require a sections inventory with saved-field expectations; see skills/new-site/completeness.md`)
+        ? fixtureContracts(parsed.data)
         : parsed.error.issues.map((issue) => `pages.${issue.path.join('.')}: ${issue.message}`);
       if (contracts.length) {
         return JSON.stringify({ ok: false, typecheck, rules, contracts, pages: [],
@@ -979,7 +907,7 @@ function scrapeUrlTool(db: Database, config: Config): DomainTool {
     schema: {
       site: z.string().describe('The site crawler name (crawlers/<site>.ts), registered with jscrawl_populate'),
       url: z.string().describe('The page url'),
-      type: z.enum(['seed', 'category', 'product']).describe('Page type: seed, category or product'),
+      type: z.string().describe(`Page type: ${crawledUrlTypes().join(', ')}`),
     },
     async execute({ site, url, type }, ctx) {
       ctx.signal?.throwIfAborted();
@@ -1002,34 +930,31 @@ function scrapeUrlTool(db: Database, config: Config): DomainTool {
   };
 }
 
+/** The site export the domain defines, written where asked and summarised. */
 function exportFeedTool(db: Database): DomainTool {
   return {
     name: 'exportFeed',
     description:
-      'Export a site\'s saved catalogue as its product feed (categories.csv and products.csv, see docs/feed-format.md) and report ' +
-      'what it holds: products, variant rows, categories, products left out for having no variant, and gaps - rows ' +
-      'without a price or availability, products without an image or category - plus the first rows. Run it on the ' +
-      'pages scraped live in step 5 to check the crawler end to end. With `file`, also writes the feed there as one zip.',
+      "Export a site's saved records as its feed - the file the domain defines for its consumers (see " +
+      '/api/docs/feed-format) - and report what it holds and its gaps, plus the first rows. Run it on the pages ' +
+      'scraped live when building a crawler to check it end to end. With `file`, also writes the feed there.',
     schema: {
       site: z.string().describe('The site name'),
-      file: z.string().optional().describe('A .zip file to write the feed to (categories.csv and products.csv)'),
+      file: z.string().optional().describe('A file to write the feed to'),
     },
     async execute({ site, file }, ctx) {
       ctx.signal?.throwIfAborted();
-      const feed = await exportFeed(db, site);
-      const lines = [
-        `${feed.productCount} products (${feed.rowCount} rows), ${feed.categoryCount} categories, ` +
-          `${feed.skippedCount} products left out (no variant yet)`,
-        describeGaps(feed),
-      ];
+      const [row] = await db.query<{ id: number; name: string }[]>('select id, name from site where name = ?', site);
+      if (!row) throw new Error(`No site named "${site}"`);
+      const { bytes, summary, sample } = await domain().feed!.export(Number(row.id), db as any);
+      const lines = [summary];
       if (file) {
         const path = resolve(ctx.cwd, file);
         await mkdir(dirname(path), { recursive: true });
-        await writeFile(path, feedZip(feed));
+        await writeFile(path, bytes);
         lines.push(`written to ${path}`);
       }
-      const sample = feed.products.split('\n').slice(0, 4).map((line) => (line.length > 1500 ? `${line.slice(0, 1500)}…` : line));
-      lines.push('', 'products.csv:', ...sample);
+      if (sample) lines.push('', sample);
       return lines.join('\n');
     },
   };
@@ -1146,174 +1071,6 @@ function resolveIssue(db: Database): DomainTool {
       if (result.rows.length === 0) throw new Error(`No open or triaged issue ${issue} to update`);
       const twins = result.twins.length ? ` ${result.twins.length} other issue(s) with the same problem got the same verdict.` : '';
       return `Issue ${issue} set to ${status} (${verdict}).${twins}`;
-    },
-  };
-}
-
-/** One image's label from imaged's product_images job. */
-interface ImageLabel {
-  url: string;
-  pure?: boolean;
-  kind?: string;
-  reason?: string;
-  error?: string;
-}
-
-interface GalleryLabels {
-  classifier: string;
-  fallback?: string;
-  usage?: { inputTokens: number; outputTokens: number; estimatedCostUsd: number };
-  results: ImageLabel[];
-}
-
-/** Labels one product's gallery (up to 20 urls) with imaged's product_images job. */
-async function labelGallery(
-  imagedUrl: string,
-  urls: string[],
-  productType: string | undefined,
-  signal?: AbortSignal
-): Promise<GalleryLabels> {
-  const form = new FormData();
-  form.set('params', JSON.stringify({ urls, product_type: productType }));
-  const submitted = await fetch(`${imagedUrl}/jobs/product_images`, { method: 'POST', body: form, signal }).catch(
-    (err: Error) => {
-      throw new Error(`imaged (the image service) is not reachable at ${imagedUrl}: ${err.message}`);
-    }
-  );
-  if (!submitted.ok) throw new Error(`imaged refused the job: ${submitted.status} ${await submitted.text()}`);
-  const { id } = (await submitted.json()) as { id: string };
-  const deadline = Date.now() + 5 * 60_000;
-  while (Date.now() < deadline) {
-    signal?.throwIfAborted();
-    const job = (await (await fetch(`${imagedUrl}/jobs/${id}`, { signal })).json()) as {
-      status: string;
-      error?: string;
-      result?: GalleryLabels;
-    };
-    if (job.status === 'succeeded') return job.result!;
-    if (job.status === 'failed' || job.status === 'canceled') throw new Error(`imaged job ${id} ${job.status}: ${job.error}`);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-  throw new Error(`imaged job ${id} did not finish in 5 minutes`);
-}
-
-function renderLabels(labels: GalleryLabels): string[] {
-  const lines = [
-    `classifier: ${labels.classifier}` + (labels.fallback ? ` (fell back: ${labels.fallback})` : '') +
-      (labels.usage
-        ? `, ${labels.usage.inputTokens} input / ${labels.usage.outputTokens} output tokens, est. $${labels.usage.estimatedCostUsd.toFixed(6)}`
-        : ''),
-  ];
-  for (const label of labels.results) {
-    lines.push(label.error ? `  error ${label.url}: ${label.error}` : `  ${label.pure ? 'pure ' : 'noise'} ${label.kind} ${label.url} - ${label.reason}`);
-  }
-  return lines;
-}
-
-function classifyImagesTool({ imagedUrl }: DomainToolDeps): DomainTool {
-  return {
-    name: 'classifyImages',
-    readOnly: true,
-    description:
-      'Label the images of ONE product\'s gallery (1-20 urls) as pure - the product alone, e.g. a tile\'s face ' +
-      'filling the frame or a sofa on a plain backdrop - or noise: room scenes, props, several pieces, a tilted ' +
-      'tile on a backdrop, banners. Each label has a kind and a reason. Pass the product type (e.g. "floor tile", ' +
-      '"sofa"): what counts as pure differs between surfaces and objects. A vision model judges them (a fraction ' +
-      'of a cent a gallery); when it is unavailable a weaker local model does, and the output says so. Use it on ' +
-      'a few products to find the url, alt-text or gallery-position signal that separates pure images on this site.',
-    schema: {
-      urls: z.array(z.string()).min(1).max(20).describe('Full image urls of one product, in gallery order'),
-      productType: z.string().optional().describe('What the product is, e.g. "floor tile", "sofa", "dress"'),
-    },
-    async execute({ urls, productType }, ctx) {
-      return renderLabels(await labelGallery(imagedUrl, urls, productType, ctx.signal)).join('\n');
-    },
-  };
-}
-
-/** Images saved as pure an audit needs before its precision means anything. */
-const MIN_AUDITED_PURE = 20;
-
-function imageAuditTool(db: Database, { imagedUrl }: DomainToolDeps): DomainTool {
-  return {
-    name: 'imageAudit',
-    readOnly: true,
-    description:
-      'Check the pure flags a site\'s crawler saved on product_image against the image classifier, on a sample ' +
-      'of saved products spread across categories. Reports precision (of the images saved as pure, how many the ' +
-      'classifier calls pure), recall (of the images the classifier calls pure, how many were saved as pure), ' +
-      'images left unflagged, products without a pure image, and every disagreement with the classifier\'s reason. ' +
-      'The classifier can be wrong too: read the disagreements before changing the crawler\'s rule.',
-    schema: {
-      site: z.string().describe('The site crawler name'),
-      products: z.number().int().min(1).max(40).optional().describe('How many products to sample (default 20)'),
-      productType: z.string().optional().describe('What the products are; defaults to each product\'s (primary) category'),
-    },
-    async execute({ site, products = 20, productType }, ctx) {
-      const sample = await db.query<{ id: number; name: string; category: string | null }[]>(
-        `select id, name, category from (
-           select p.id, p.name, c.name as category,
-                  row_number() over (partition by c.id order by random()) as turn
-             from product p join site s on s.id = p.site_id
-             left join lateral (
-               select c.id, c.name from product_category pc join category c on c.id = pc.category_id
-                where pc.product_id = p.id order by pc.is_primary desc, pc.category_id limit 1
-             ) c on true
-            where s.name = ? and exists (select 1 from product_image pi where pi.product_id = p.id)
-         ) ranked order by turn, random() limit ?`,
-        site,
-        products
-      );
-      if (sample.length === 0) throw new Error(`${site} has no saved products with images`);
-      let truePure = 0, falsePure = 0, missedPure = 0, trueNoise = 0, unflagged = 0, failed = 0, inputTokens = 0, outputTokens = 0, cost = 0;
-      const classifiers = new Set<string>();
-      const withoutPure: string[] = [];
-      const disagreements: string[] = [];
-      for (const product of sample) {
-        const images = await db.query<{ url: string; pure: boolean | null }[]>(
-          `select distinct on (u.url) u.url, pi.pure from product_image pi join url u on u.id = pi.url_id
-            where pi.product_id = ? order by u.url, pi.position limit 20`,
-          product.id
-        );
-        const labels = await labelGallery(imagedUrl, images.map((image) => image.url), productType ?? product.category ?? undefined, ctx.signal);
-        classifiers.add(labels.classifier + (labels.fallback ? ` (fell back: ${labels.fallback})` : ''));
-        inputTokens += labels.usage?.inputTokens ?? 0;
-        outputTokens += labels.usage?.outputTokens ?? 0;
-        cost += labels.usage?.estimatedCostUsd ?? 0;
-        const saved = new Map(images.map((image) => [image.url, image.pure]));
-        if (!images.some((image) => image.pure) && labels.results.some((label) => label.pure)) {
-          withoutPure.push(`${product.name} (product ${product.id})`);
-        }
-        for (const label of labels.results) {
-          const flag = saved.get(label.url);
-          if (label.error) failed++;
-          else if (flag === null || flag === undefined) unflagged++;
-          else if (flag && label.pure) truePure++;
-          else if (!flag && !label.pure) trueNoise++;
-          else {
-            if (flag) falsePure++;
-            else missedPure++;
-            disagreements.push(`  saved ${flag ? 'pure' : 'noise'}, classifier ${label.pure ? 'pure' : 'noise'} (${label.kind}): ${label.url} - ${label.reason}`);
-          }
-        }
-      }
-      const ratio = (hit: number, all: number) => (all ? `${((100 * hit) / all).toFixed(0)}% (${hit}/${all})` : 'n/a');
-      const savedPure = truePure + falsePure;
-      return [
-        `${sample.length} products of ${site}; classifier: ${[...classifiers].join(', ')}` +
-          (inputTokens ? `; ${inputTokens} input / ${outputTokens} output tokens, est. $${cost.toFixed(6)}` : ''),
-        `precision: ${ratio(truePure, savedPure)}` +
-          (savedPure < MIN_AUDITED_PURE
-            ? ` - too few images saved as pure to judge (${savedPure}, need ${MIN_AUDITED_PURE}): ` +
-              'scrape more product pages, across categories, and audit again'
-            : ''),
-        `recall: ${ratio(truePure, truePure + missedPure)}`,
-        `agreed noise: ${trueNoise}, saved without a flag: ${unflagged}, unreadable: ${failed}`,
-        `products without a saved pure image the classifier found one for: ${withoutPure.length}` +
-          (withoutPure.length ? `\n  ${withoutPure.join('\n  ')}` : ''),
-        `disagreements: ${disagreements.length}`,
-        ...disagreements,
-      ].join('\n');
     },
   };
 }
@@ -1484,7 +1241,7 @@ function crawlTools({ db, jscrawlUrl, apiToken }: DomainToolDeps): DomainTool[] 
   return [crawlStatus, crawlStart, crawlStop, crawlRestart, requeueUrl, crawlLog];
 }
 
-export function domainTools(deps: DomainToolDeps): DomainTool[] {
+function coreTools(deps: DomainToolDeps): DomainTool[] {
   const { db, config } = deps;
   return [
     makeWebfetch(false),
@@ -1505,11 +1262,23 @@ export function domainTools(deps: DomainToolDeps): DomainTool[] {
     crawlHistoryTool(db),
     populateTool(deps),
     scrapeUrlTool(db, config),
-    exportFeedTool(db),
-    classifyImagesTool(deps),
-    imageAuditTool(db, deps),
+    ...(domain().feed ? [exportFeedTool(db)] : []),
     dbSchema(db),
     resolveIssue(db),
     ...crawlTools(deps),
   ];
+}
+
+/** The core's tools and the domain's, mounted together; a name used by both is a configuration error. */
+export function domainTools(deps: DomainToolDeps): DomainTool[] {
+  const core = coreTools(deps);
+  const app = domain().tools?.(deps) ?? [];
+  const names = new Set(core.map((tool) => tool.name));
+  for (const tool of app) {
+    if (names.has(tool.name)) throw new Error(`The domain's tool "${tool.name}" collides with a core tool`);
+  }
+  if (!app.some((tool) => tool.name === domain().inspectTool)) {
+    throw new Error(`The domain names "${domain().inspectTool}" as its inspect tool but does not provide it`);
+  }
+  return [...core, ...app];
 }

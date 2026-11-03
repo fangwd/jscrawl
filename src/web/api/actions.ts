@@ -2,7 +2,10 @@
 // site's crawler. Verdicts stay with the agents (resolveIssue), issues with the
 // crawler (recordIssue).
 
-import { writeFile } from 'fs/promises';
+import { spawn } from 'child_process';
+import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { Database } from 'sqlex';
 import { Config } from '../../core/models';
 import { crawlerSource, crawlerFile } from './read';
@@ -84,4 +87,34 @@ export async function saveCrawler(
   }
   await writeFile(crawlerFile(config, name), edit.code);
   return { status: 200, body: await crawlerSource(config, name, cwd) };
+}
+
+/** How long a live check may take: one page fetch (a browser under usePuppeteer) and its scrape. */
+const LIVE_CHECK_TIMEOUT_MS = 180_000;
+
+/**
+ * Runs the live check (src/core/live-check.ts) in a child, as the deployment's
+ * CLI, since it runs the site's crawler: `src/cli.ts --live-check <url id> <out>`.
+ */
+export async function liveCheckChild(urlId: number, cwd = process.cwd()): Promise<ActionResult> {
+  const dir = await mkdtemp(join(tmpdir(), 'jscrawl-live-'));
+  const out = join(dir, 'check.json');
+  try {
+    const { code, stderr } = await new Promise<{ code: number | null; stderr: string }>((done) => {
+      const child = spawn(process.execPath, ['-r', 'ts-node/register', 'src/cli.ts', '--live-check', String(urlId), out], {
+        cwd,
+        stdio: ['ignore', 'ignore', 'pipe'],
+        timeout: LIVE_CHECK_TIMEOUT_MS,
+      });
+      let stderr = '';
+      child.stderr.on('data', (chunk) => (stderr = (stderr + chunk).slice(-4000)));
+      child.on('close', (code) => done({ code, stderr }));
+      child.on('error', (err) => done({ code: null, stderr: String(err) }));
+    });
+    const result = await readFile(out, 'utf8').catch(() => null);
+    if (result !== null) return { status: 200, body: JSON.parse(result) };
+    return { status: 500, body: { error: `The live check ended without a result (exit ${code}): ${stderr.trim().split('\n').slice(-5).join('\n')}` } };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 }

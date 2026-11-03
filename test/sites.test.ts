@@ -80,30 +80,35 @@ test('an edited crawler is reloaded rather than served from the require cache', 
   }
 }, 120_000);
 
-test('a crawler is loaded against the core on disk, and the logger is left alone', async () => {
+test('a crawler is loaded against the core on disk, and the logger and the registered domain are left alone', async () => {
   // The MCP tool server is long-lived: without dropping the core's cached copies,
   // a crawler that imports a helper added to src/core since the server started
   // fails to compile at all (TS2305), and one that calls a changed helper runs the
-  // old behaviour. The logger owns process-wide transports, so it must survive.
+  // old behaviour. The logger owns process-wide transports and the domain registry
+  // the deployment's domain, so both must survive.
   const core = (name: string) => `${process.cwd()}/src/core/${name}`;
   const script = [
     `const { siteModule } = require(${JSON.stringify(core('sites'))});`,
     `const extractBefore = require(${JSON.stringify(core('extract'))});`,
     `const loggerBefore = require(${JSON.stringify(core('logger'))});`,
+    `require(${JSON.stringify(core('domain'))}).useDomain({ name: 'reloaded', urlTypes: ['page'] });`,
+    `siteModule('shop', { sites: { dir: ${JSON.stringify(FIXTURES)} } });`,
     `siteModule('shop', { sites: { dir: ${JSON.stringify(FIXTURES)} } });`,
     `const extractAfter = require(${JSON.stringify(core('extract'))});`,
     `const loggerAfter = require(${JSON.stringify(core('logger'))});`,
+    `const { crawledUrlTypes } = require(${JSON.stringify(core('domain'))});`,
     `console.log(JSON.stringify({`,
     `  freshExtract: extractBefore !== extractAfter,`,
     `  sameLogger: loggerBefore === loggerAfter,`,
-    `  stillExports: typeof extractAfter.visibleText === 'function'`,
+    `  stillExports: typeof extractAfter.visibleText === 'function',`,
+    `  domain: crawledUrlTypes()`,
     `}));`,
   ].join('\n');
   const { stdout } = await promisify(execFile)('node', ['-r', 'ts-node/register', '-e', script], {
     cwd: process.cwd(),
     timeout: 90_000,
   });
-  expect(JSON.parse(stdout.trim())).toEqual({ freshExtract: true, sameLogger: true, stillExports: true });
+  expect(JSON.parse(stdout.trim())).toEqual({ freshExtract: true, sameLogger: true, stillExports: true, domain: ['seed', 'page'] });
 }, 120_000);
 
 test('a missing crawler says where to look', () => {

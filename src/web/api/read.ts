@@ -6,10 +6,7 @@ import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { relative, resolve } from 'path';
 import { Database } from 'sqlex';
-import { parse } from 'gumbo-html';
-import { request } from 'yareq';
-import { REQUEST_HEADERS } from '../../core/crawler';
-import { jsonLd, productFromJsonLd } from '../../core/extract';
+import { domain } from '../../core/domain';
 import { listSnapshots } from '../../core/inspect';
 import { Config } from '../../core/models';
 import { siteModulePath } from '../../core/sites';
@@ -25,7 +22,7 @@ export const URL_STATUS_KEY: { [code: number]: string } = {
   3: 'disallowed',
 };
 
-const num = (value: unknown): number | null => (value === null || value === undefined ? null : Number(value));
+export const num = (value: unknown): number | null => (value === null || value === undefined ? null : Number(value));
 const statusKey = (status: number) => URL_STATUS_KEY[status] ?? String(status);
 
 export interface Page<T> {
@@ -35,7 +32,7 @@ export interface Page<T> {
   rows: T[];
 }
 
-function pageParams(page?: number, pageSize?: number) {
+export function pageParams(page?: number, pageSize?: number) {
   const size = Math.min(Math.max(Math.trunc(pageSize ?? 50), 1), 200);
   const p = Math.max(Math.trunc(page ?? 1), 1);
   return { size, p, offset: (p - 1) * size };
@@ -43,7 +40,7 @@ function pageParams(page?: number, pageSize?: number) {
 
 /** Every site with its url counts by type x status, product count and issue counts. */
 export async function sitesOverview(db: Database) {
-  const [sites, urlCounts, productCounts, issueCounts] = await Promise.all([
+  const [sites, urlCounts, issueCounts] = await Promise.all([
     db.query<any[]>(
       `select s.id, s.name, s.currency, s.locale,
               c.wait_time, c.random_wait, c.thread_count, c.max_retry_count, c.use_puppeteer, c.page_snapshots
@@ -51,7 +48,6 @@ export async function sitesOverview(db: Database) {
         order by s.name`
     ),
     db.query<any[]>('select site_id, type, status, count(*) as n from url group by site_id, type, status'),
-    db.query<any[]>('select site_id, count(*) as n from product group by site_id'),
     // pages per status, plus the distinct problems behind them: an open problem is
     // a page type and kind under investigation, a triaged one a verdict awaiting review
     db.query<any[]>(
@@ -62,7 +58,8 @@ export async function sitesOverview(db: Database) {
         group by u.site_id, i.status`
     ),
   ]);
-  return sites.map((s) => {
+  const metrics = await Promise.all(sites.map((s) => domain().metrics(Number(s.id), db as any)));
+  return sites.map((s, index) => {
     const id = Number(s.id);
     const urls: { [type: string]: { [status: string]: number } } = {};
     for (const row of urlCounts.filter((r) => Number(r.site_id) === id)) {
@@ -92,7 +89,8 @@ export async function sitesOverview(db: Database) {
               pageSnapshots: s.page_snapshots,
             },
       urls,
-      products: Number(productCounts.find((r) => Number(r.site_id) === id)?.n ?? 0),
+      // the domain's metrics, live
+      metrics: metrics[index],
       issues,
       problems,
     };
@@ -356,140 +354,6 @@ export async function openProblems(db: Database) {
   }));
 }
 
-/** The site's category rows (flat; the UI builds the tree) with product counts. */
-export async function siteCategories(db: Database, siteId: number) {
-  const rows = await db.query<any[]>(
-    `select c.id, c.parent_id, c.name, c.url_id, c.sort_order, u.url,
-            (select count(*) from product_category pc where pc.category_id = c.id) as products
-       from category c left join url u on u.id = c.url_id
-      where c.site_id = ?
-      order by c.parent_id nulls first, c.sort_order, c.name`,
-    siteId
-  );
-  return rows.map((c) => ({
-    id: Number(c.id),
-    parentId: c.parent_id != null ? Number(c.parent_id) : null,
-    name: c.name,
-    urlId: c.url_id != null ? Number(c.url_id) : null,
-    url: c.url ?? null,
-    products: Number(c.products),
-  }));
-}
-
-export interface ProductFilter {
-  /** Products in this category or any of its descendants. */
-  categoryId?: number;
-  q?: string;
-  page?: number;
-  pageSize?: number;
-}
-
-/**
- * A site's catalogue, one row per product: thumbnail, price range and stock
- * across its variants. In a category, products keep the listing's order.
- */
-export async function listProducts(db: Database, siteId: number, filter: ProductFilter): Promise<Page<any>> {
-  const where = ['p.site_id = ?'];
-  const args: unknown[] = [siteId];
-  const scope: string[] = [];
-  if (filter.categoryId !== undefined) {
-    scope.push(`with recursive tree(id) as (
-      select id from category where id = ? and site_id = ?
-      union select c.id from category c join tree t on c.parent_id = t.id)`);
-    where.push('exists (select 1 from product_category pc where pc.product_id = p.id and pc.category_id in (select id from tree))');
-    args.unshift(filter.categoryId, siteId);
-  }
-  if (filter.q) {
-    where.push('(p.name ilike ? or p.code ilike ? or b.name ilike ?)');
-    args.push(`%${filter.q}%`, `%${filter.q}%`, `%${filter.q}%`);
-  }
-  const { size, p, offset } = pageParams(filter.page, filter.pageSize ?? 48);
-  const from = `from product p left join brand b on b.id = p.brand_id where ${where.join(' and ')}`;
-  const order =
-    filter.categoryId !== undefined
-      ? `(select min(pc.position) from product_category pc where pc.product_id = p.id and pc.category_id = ${Number(filter.categoryId)}), p.name`
-      : 'p.name';
-  const [count] = await db.query<any[]>(`${scope.join('')} select count(*) as n ${from}`, ...args);
-  const rows = await db.query<any[]>(
-    `${scope.join('')}
-     select p.id, p.code, p.name, p.status, b.name as brand,
-            (select u.url from product_image pi join url u on u.id = pi.url_id where pi.product_id = p.id
-              order by pi.role <> 'thumbnail', pi.role = 'swatch', pi.position limit 1) as image,
-            (select count(*) from product_variant v where v.product_id = p.id) as variants,
-            (select min(v.price) from product_variant v where v.product_id = p.id) as min_price,
-            (select max(v.price) from product_variant v where v.product_id = p.id) as max_price,
-            (select bool_or(v.compare_at_price > v.price) from product_variant v where v.product_id = p.id) as on_sale,
-            (select count(*) from product_variant v where v.product_id = p.id and v.availability in ('in_stock', 'limited')) as in_stock
-       ${from}
-      order by ${order}
-      limit ${size} offset ${offset}`,
-    ...args
-  );
-  return {
-    total: Number(count.n),
-    page: p,
-    pageSize: size,
-    rows: rows.map((r) => ({
-      id: Number(r.id),
-      code: r.code,
-      name: r.name ?? null,
-      status: r.status,
-      brand: r.brand ?? null,
-      image: r.image ?? null,
-      variants: Number(r.variants),
-      minPrice: num(r.min_price),
-      maxPrice: num(r.max_price),
-      onSale: r.on_sale === true,
-      inStock: Number(r.in_stock),
-    })),
-  };
-}
-
-export interface LiveCheck {
-  httpStatus: number | null;
-  finalUrl: string | null;
-  error: string | null;
-  product: {
-    name: string | null;
-    code: string | null;
-    variants: { code: string; name: string | null; price: number | null; availability: string | null }[];
-  } | null;
-}
-
-/** Fetches the url live right now and extracts its JSON-LD product data, for drift checks. */
-export async function liveProduct(url: string): Promise<LiveCheck> {
-  try {
-    const response = await request(url, {
-      headers: REQUEST_HEADERS,
-      redirect: 'follow',
-      timeout: 30_000,
-      responseType: 'buffer',
-    });
-    if (response.statusCode !== 200 || !/text|json/i.test(response.contentType)) {
-      return { httpStatus: response.statusCode, finalUrl: response.url, error: null, product: null };
-    }
-    const data = productFromJsonLd(jsonLd(parse(response.text(), { baseUrl: response.url })));
-    return {
-      httpStatus: response.statusCode,
-      finalUrl: response.url,
-      error: null,
-      product: data
-        ? {
-            name: data.product.name ?? null,
-            code: data.product.code ?? null,
-            variants: data.variants.map((v) => ({
-              code: v.code ?? '',
-              name: v.name ?? null,
-              price: v.price ?? null,
-              availability: v.availability ?? null,
-            })),
-          }
-        : null,
-    };
-  } catch (err: any) {
-    return { httpStatus: null, finalUrl: null, error: String(err?.message ?? err), product: null };
-  }
-}
 /** One issue with its url/site context and the state of its escalation input. */
 export async function issueDetail(db: Database, id: number) {
   const [issue] = await db.query<any[]>(

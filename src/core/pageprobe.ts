@@ -5,7 +5,7 @@
 // reliable source instead of guessing DOM selectors.
 
 import type { Browser } from 'puppeteer';
-import { REQUEST_HEADERS } from './crawler';
+import { REQUEST_HEADERS } from './base-crawler';
 import { closingBracket } from './extract/embedded';
 import { jsonLd } from './extract';
 import { parse } from 'gumbo-html';
