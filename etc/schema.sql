@@ -26,13 +26,15 @@ CREATE TABLE crawler (
     random_wait         integer NOT NULL DEFAULT 0,      -- extra random seconds
     thread_count        integer NOT NULL DEFAULT 1,
     max_retry_count     integer NOT NULL DEFAULT 5,
-    proxy_type          text,
+    proxy_type          text CHECK (proxy_type IN ('tor')), -- null: fetched directly
+    proxy_country       char(2) CHECK (proxy_country ~ '^[A-Z]{2}$'), -- the exit's ISO 3166-1 country; null: any
     use_puppeteer       boolean NOT NULL DEFAULT false,
     page_snapshots      text NOT NULL DEFAULT 'gzip'
                         CHECK (page_snapshots IN ('gzip', 'raw', 'off')),
     allow               jsonb NOT NULL DEFAULT '[]',     -- url path rules, robots.txt syntax
     disallow            jsonb NOT NULL DEFAULT '[]',
-    refresh_minutes     integer CHECK (refresh_minutes > 0) -- re-crawl this long after the last crawl started; null: never
+    refresh_minutes     integer CHECK (refresh_minutes > 0), -- re-crawl this long after the last crawl started; null: never
+    CONSTRAINT crawler_proxy_country_needs_type CHECK (proxy_country IS NULL OR proxy_type IS NOT NULL)
 );
 
 -- A crawled website. One site sells in one currency; a multi-region shop is

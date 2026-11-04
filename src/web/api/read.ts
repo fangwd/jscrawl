@@ -43,7 +43,8 @@ export async function sitesOverview(db: Database) {
   const [sites, urlCounts, issueCounts] = await Promise.all([
     db.query<any[]>(
       `select s.id, s.name, s.currency, s.locale,
-              c.wait_time, c.random_wait, c.thread_count, c.max_retry_count, c.use_puppeteer, c.page_snapshots
+              c.wait_time, c.random_wait, c.thread_count, c.max_retry_count, c.use_puppeteer, c.page_snapshots,
+              c.proxy_type, c.proxy_country
          from site s left join crawler c on c.id = s.crawler_id
         order by s.name`
     ),
@@ -87,6 +88,7 @@ export async function sitesOverview(db: Database) {
               maxRetryCount: s.max_retry_count,
               usePuppeteer: s.use_puppeteer,
               pageSnapshots: s.page_snapshots,
+              proxy: s.proxy_type ? { type: s.proxy_type, country: s.proxy_country } : null,
             },
       urls,
       // the domain's metrics, live

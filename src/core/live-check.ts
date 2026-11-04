@@ -59,7 +59,7 @@ export async function liveCheck(config: Config, urlId: number): Promise<LiveChec
     result.error = String(err?.message ?? err);
     return result;
   } finally {
-    await crawler.client.close();
+    await crawler.close();
     await db.end();
   }
 }

@@ -7,6 +7,7 @@ import { crawledUrlTypes, domain } from './domain';
 import { recordIssue } from './issues';
 import { regressions, snapshots, takeSnapshot } from './snapshot';
 import { Config, CrawlerOptions, SiteUrl, UrlStatus } from './models';
+import { Proxy, ProxyError, ProxyLease, proxies, proxySpec, refusedStatus, releaseLease, viaProxy } from './proxy';
 import { PathRules, allowAll, siteRobots } from './robots';
 import { sha1, sleep } from './utils';
 
@@ -34,6 +35,10 @@ export class Crawler<DB extends CoreDatabase = CoreDatabase> {
    * `blocked` is set when there are BLOCKED_AFTER of them and the crawl stops.
    */
   refusals: { reasons: string[]; blocked?: string } = { reasons: [] };
+  /** The site's proxy, shared by the crawl's threads. */
+  proxy: ProxyLease = {};
+  /** The proxy generation the client's connections were made on; see `send`. */
+  private clientGeneration = 0;
   /** Each host's robots.txt, read with the first request to it. */
   private robots = new Map<string, Promise<Robots>>();
   /** When the last request to the site went out, for pacing the next. */
@@ -62,6 +67,23 @@ export class Crawler<DB extends CoreDatabase = CoreDatabase> {
 
   async cleanup() {
     await this.db.end();
+  }
+
+  /** Closes the client (the browser) and releases the site's proxy. */
+  async close() {
+    await this.client.close();
+    await releaseLease(this.proxy);
+  }
+
+  /** The site's proxy, started on first use; null when the site is fetched directly. */
+  private proxyFor(): Promise<Proxy | null> {
+    return (this.proxy.lease ??= (async () => {
+      const spec = proxySpec(this.options);
+      if (!spec) return null;
+      const proxy = await proxies().get(spec);
+      this.info(`Fetching through ${proxy.label}`);
+      return proxy;
+    })());
   }
 
   /**
@@ -105,18 +127,46 @@ export class Crawler<DB extends CoreDatabase = CoreDatabase> {
       },
     };
 
-    if (this.options.proxyType) {
-      options.proxy = this.options.proxyType;
-    }
-
     const robots = await this.robotsFor(url);
     if (robots.unreachable) throw new RobotsError(url, `${robots.url} is unreachable (${robots.unreachable})`);
     if (!robots.allows(url)) throw new RobotsError(url, `${robots.url} disallows it`, true);
-    await this.pace(robots.delay);
-    this.info(`Requesting ${method ?? 'GET'} ${url} (${options.proxy || 'nil'})`);
-    const response = await client.get(url, options);
-    const note = `${response.contentType}, ${response.contentLength} bytes`;
-    this.info(`${response.statusCode} ${url} (${note})`);
+    return this.send(url, client, options, robots.delay);
+  }
+
+  /**
+   * Sends one request at the site's pace. Through a proxy, the retries are
+   * viaProxy's rather than yareq's: each failed attempt - a network error or a
+   * refusal an exit IP draws - first renews the route (a new Tor identity), or
+   * replaces the proxy when it is down.
+   */
+  private async send(url: string, client: HttpClient, options: RequestOptions, crawlDelay = 0): Promise<Response> {
+    const proxy = await this.proxyFor();
+    const method = options.method ?? 'GET';
+    if (!proxy) {
+      await this.pace(crawlDelay);
+      this.info(`Requesting ${method} ${url} (direct)`);
+      return this.received(url, await client.get(url, options));
+    }
+    return viaProxy(
+      proxy,
+      this.options.maxRetryCount,
+      async () => {
+        if (this.clientGeneration !== proxy.generation) {
+          // a browser keeps its connections, and with them the old route
+          await this.client.close();
+          this.clientGeneration = proxy.generation;
+        }
+        await this.pace(crawlDelay);
+        this.info(`Requesting ${method} ${url} (${proxy.label})`);
+        return this.received(url, await client.get(url, { ...options, proxy: proxy.url, retry: undefined }));
+      },
+      refusedStatus,
+      (retry, failure, down) => this.warn(`Retry #${retry} ${url} (${failure}): ${down ? 'replacing' : 'renewing'} ${proxy.label}`)
+    );
+  }
+
+  private received(url: string, response: Response): Response {
+    this.info(`${response.statusCode} ${url} (${response.contentType}, ${response.contentLength} bytes)`);
     return response;
   }
 
@@ -267,6 +317,7 @@ export class Crawler<DB extends CoreDatabase = CoreDatabase> {
     try {
       response = await this.fetchPage(url.url);
     } catch (err: any) {
+      if (err instanceof ProxyError) throw err;
       if (err instanceof RobotsError && err.disallowed) {
         // recorded like a path-rule exclusion; a recrawl re-checks it against the robots.txt of the day
         this.info(err.message);
@@ -409,6 +460,7 @@ export class Crawler<DB extends CoreDatabase = CoreDatabase> {
       crawler.threadId = i + 1;
       crawler.stop = this.stop;
       crawler.refusals = this.refusals;
+      crawler.proxy = this.proxy;
       promises.push(crawler.run());
     }
 
@@ -476,7 +528,7 @@ export class Crawler<DB extends CoreDatabase = CoreDatabase> {
   private async readRobots(robotsUrl: string): Promise<Robots> {
     const readAt = Date.now();
     try {
-      const response = await new DefaultHttpClient().get(robotsUrl, { headers: REQUEST_HEADERS, redirect: 'follow' });
+      const response = await this.send(robotsUrl, new DefaultHttpClient(), { headers: REQUEST_HEADERS, redirect: 'follow' });
       const status = response.statusCode;
       if (status >= 500) return this.unreachableRobots(robotsUrl, `HTTP ${status}`, readAt);
       if (status >= 400) return { url: robotsUrl, delay: 0, allows: allowAll, readAt };
@@ -485,6 +537,7 @@ export class Crawler<DB extends CoreDatabase = CoreDatabase> {
       if (robots.delay) this.info(`${robotsUrl} asks for ${robots.delay}s between requests`);
       return { url: robotsUrl, ...robots, readAt };
     } catch (err: any) {
+      if (err instanceof ProxyError) throw err;
       return this.unreachableRobots(robotsUrl, err?.message ?? String(err), readAt);
     }
   }

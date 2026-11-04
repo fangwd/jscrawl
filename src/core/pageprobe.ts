@@ -6,6 +6,7 @@
 
 import type { Browser } from 'puppeteer';
 import { REQUEST_HEADERS } from './base-crawler';
+import { browserProxyArgs } from './puppet';
 import { closingBracket } from './extract/embedded';
 import { jsonLd } from './extract';
 import { parse } from 'gumbo-html';
@@ -60,6 +61,8 @@ export interface ProbeOptions {
   timeoutMs?: number;
   /** Choose another value in each option picker, as a shopper would, and record what that fetches. */
   interact?: boolean;
+  /** Load the page through this proxy (a yareq proxy url). */
+  proxy?: string;
 }
 
 const MAX_BODY = 5 * 1024 * 1024;
@@ -80,7 +83,7 @@ export async function probePage(url: string, options: ProbeOptions = {}): Promis
   const browser: Browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE,
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', ...browserProxyArgs(options.proxy)],
   });
   try {
     const page = await browser.newPage();

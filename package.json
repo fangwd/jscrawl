@@ -22,7 +22,7 @@
     "sqlex": "^5.0.0",
     "winston": "^3.19.0",
     "xml2js": "^0.6.2",
-    "yareq": "^2.0.0",
+    "yareq": "^3.0.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

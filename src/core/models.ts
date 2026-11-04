@@ -15,6 +15,9 @@ export type Config = {
 
 export type PageSnapshots = 'gzip' | 'raw' | 'off';
 
+/** How a site's requests leave: `tor` goes through a Tor exit from torm (see core/proxy.ts). */
+export type ProxyType = 'tor';
+
 export interface CrawlerOptions {
   id: number;
   name: string;
@@ -22,7 +25,9 @@ export interface CrawlerOptions {
   randomWait: number;
   threadCount: number;
   maxRetryCount: number;
-  proxyType: string | null;
+  proxyType: ProxyType | null;
+  /** The exit's ISO 3166-1 alpha-2 country, uppercase; null: any. */
+  proxyCountry: string | null;
   usePuppeteer: boolean;
   pageSnapshots: PageSnapshots;
   allow: string[];
@@ -38,6 +43,12 @@ export interface SiteConfig {
   threadCount?: number;
   maxRetryCount?: number;
   usePuppeteer?: boolean;
+  /**
+   * Fetch through a proxy instead of directly, e.g. `{ type: 'tor', country: 'AU' }`
+   * for a site that prices by the visitor's country. Omitted, requests go out
+   * directly.
+   */
+  proxy?: { type: ProxyType; country?: string };
   /** Saved HTML/JSON responses for replay, not a fetch cache. Defaults to gzip. */
   pageSnapshots?: PageSnapshots;
   /**

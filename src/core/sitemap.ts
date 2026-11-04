@@ -5,6 +5,7 @@
 import { gunzipSync } from 'zlib';
 import { parseStringPromise } from 'xml2js';
 import { request } from 'yareq';
+import { Proxy, refusedStatus, viaProxy } from './proxy';
 import { REQUEST_HEADERS } from './base-crawler';
 
 export interface UrlEntry {
@@ -20,15 +21,18 @@ export type Fetcher = (url: string) => Promise<string>;
 /** How many files one inventory pulls in, so a broken index cannot loop. */
 const MAX_FILES = 50;
 
-export async function fetchText(url: string, signal?: AbortSignal): Promise<string> {
-  const response = await request(url, {
-    headers: REQUEST_HEADERS,
-    redirect: 'follow',
-    timeout: 30_000,
-    signal: AbortSignal.any([AbortSignal.timeout(30_000), ...(signal ? [signal] : [])]),
-    responseType: 'buffer',
-    retry: { retries: 2, delay: ({ attempt }: { attempt: number }) => 2000 * attempt },
-  });
+/** A sitemap (or robots.txt) as text, through the site's `proxy` when it has one. */
+export async function fetchText(url: string, signal?: AbortSignal, proxy?: Proxy | null): Promise<string> {
+  const send = (route?: string) =>
+    request(url, {
+      headers: REQUEST_HEADERS,
+      redirect: 'follow',
+      timeout: 30_000,
+      signal: AbortSignal.any([AbortSignal.timeout(30_000), ...(signal ? [signal] : [])]),
+      responseType: 'buffer',
+      ...(route ? { proxy: route } : { retry: { retries: 2, delay: ({ attempt }: { attempt: number }) => 2000 * attempt } }),
+    });
+  const response = proxy ? await viaProxy(proxy, 2, () => send(proxy.url), refusedStatus) : await send();
   const body = response.body as Buffer;
   return (url.endsWith('.gz') ? gunzipSync(body) : body).toString('utf8');
 }

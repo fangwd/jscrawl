@@ -9,6 +9,7 @@ import { mkdir, open, type FileHandle } from 'fs/promises';
 import { join } from 'path';
 import { Database } from 'sqlex';
 import { BLOCKED_EXIT_CODE } from './models';
+import { reapProxies } from './proxy';
 import { sha1 } from './utils';
 
 const STOP_GRACE_MS = 10_000;
@@ -101,6 +102,17 @@ export class Supervisor {
         }
       }
       await this.db.query("update crawler_run set status = 'interrupted', stopped_at = now() where id = ?", row.id);
+    }
+    await this.reapProxies();
+  }
+
+  /** Stops the Tor instances of runs that are over: a crawl killed before it could stop its own. */
+  private async reapProxies(): Promise<void> {
+    try {
+      const running = await this.db.query<{ id: number }[]>("select id from crawler_run where status = 'running'");
+      await reapProxies({ runs: new Set(running.map((row) => Number(row.id))) });
+    } catch (err) {
+      console.error('reaping proxies:', err);
     }
   }
 
@@ -388,6 +400,8 @@ export class Supervisor {
     const logPath = join(this.options.logDir, `${kind}-${run.id}.log`);
     const child = spawn(argv[0], argv.slice(1), {
       cwd: this.options.cwd,
+      // names the run's proxy instances, so they can be stopped once it is over
+      env: { ...process.env, JSCRAWL_RUN_ID: String(run.id) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const log = createWriteStream(logPath, { flags: 'a' });
@@ -413,6 +427,7 @@ export class Supervisor {
           run.id
         )
         .catch((err) => console.error('crawler_run update:', err))
+        .then(() => this.reapProxies())
         .finally(() => {
           this.recorded.delete(child);
           recorded();

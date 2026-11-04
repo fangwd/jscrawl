@@ -16,15 +16,13 @@ class WebClient {
     this.page = page;
   }
 
-  public static async create(): Promise<WebClient> {
+  /** A browser, through `proxy` (a yareq proxy url) when given. */
+  public static async create(proxy?: string): Promise<WebClient> {
     const { default: puppeteer } = await import('puppeteer');
     const browser = await puppeteer.launch({
       executablePath: process.env.PUPPETEER_EXECUTABLE,
       headless: true,
-      args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-  ],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', ...browserProxyArgs(proxy)],
     });
     const page = await browser.newPage();
     return new WebClient(browser, page);
@@ -47,6 +45,14 @@ class WebClient {
   public async close() {
     await this.browser.close();
   }
+}
+
+/**
+ * Chrome's flag for a yareq proxy url. Chrome resolves host names through a
+ * SOCKS5 proxy itself, so `socks5h` is plain `socks5` to it.
+ */
+export function browserProxyArgs(proxy?: string): string[] {
+  return proxy ? [`--proxy-server=${proxy.replace(/^socks5h:/, 'socks5:')}`] : [];
 }
 
 export default WebClient;

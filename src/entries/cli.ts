@@ -151,11 +151,14 @@ export async function runCli(): Promise<void> {
     case "scrape-url":
       for (const argv of cmd.argv) {
         const crawler = await getCrawler(config, argv);
-        await crawler.bootstrap();
-        const url = await crawler.db.getUrl(argv);
-        await crawler.process(url, { scrape: cmd.type === "scrape-url" });
-        await crawler.db.end();
-        await crawler.client.close();
+        try {
+          await crawler.bootstrap();
+          const url = await crawler.db.getUrl(argv);
+          await crawler.process(url, { scrape: cmd.type === "scrape-url" });
+        } finally {
+          await crawler.db.end();
+          await crawler.close();
+        }
       }
       break;
     case "scrape":
@@ -278,22 +281,25 @@ async function writeFeed(site: string, file: string) {
 
 async function crawl(site: string) {
   const crawler = await getCrawler(config, site);
-  await crawler.bootstrap();
-  // first signal stops gracefully after the current url; a second one kills
-  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-    process.once(signal, () => {
-      crawler.stop.requested = true;
-    });
+  try {
+    await crawler.bootstrap();
+    // first signal stops gracefully after the current url; a second one kills
+    for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+      process.once(signal, () => {
+        crawler.stop.requested = true;
+      });
+    }
+    await crawler.run();
+    await crawler.db.flush();
+    // a crawl that ran out of urls is complete; one stopped part way says nothing about the catalogue
+    if (!crawler.stop.requested) {
+      await crawler.checkRegression();
+      await crawler.checkExpectations();
+    }
+  } finally {
+    await crawler.db.end();
+    await crawler.close();
   }
-  await crawler.run();
-  await crawler.db.flush();
-  // a crawl that ran out of urls is complete; one stopped part way says nothing about the catalogue
-  if (!crawler.stop.requested) {
-    await crawler.checkRegression();
-    await crawler.checkExpectations();
-  }
-  await crawler.db.end();
-  await crawler.client.close();
   if (crawler.refusals.blocked) process.exitCode = BLOCKED_EXIT_CODE;
 }
 

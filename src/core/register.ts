@@ -5,6 +5,7 @@
 import { Database } from 'sqlex';
 import { domain } from './domain';
 import { Config, PageSnapshots } from './models';
+import { parseProxy } from './proxy';
 import { siteModule, siteNames, sitesDir } from './sites';
 import { sha1 } from './utils';
 
@@ -21,10 +22,14 @@ export async function registerSite(db: Database, config: Config, name: string): 
   if (SEED_URL !== undefined && (typeof SEED_URL !== 'string' || !SEED_URL.trim())) {
     throw new Error(`crawlers/${name}.ts exports an invalid SEED_URL`);
   }
-  const { currency, locale, scope, refresh, expect, ...rest } = site;
+  const { currency, locale, scope, refresh, expect, proxy, ...rest } = site;
   // stored as jsonb; sqlex types a document column as plain JSON
   const expectations = expect === undefined ? null : (domain().expectations.parse(expect, name) as Record<string, any>);
-  const settings = { ...rest, refreshMinutes: refresh === undefined ? null : refreshMinutes(name, refresh) };
+  const settings = {
+    ...rest,
+    ...proxySettings(name, proxy),
+    refreshMinutes: refresh === undefined ? null : refreshMinutes(name, refresh),
+  };
   if (scope !== undefined && (typeof scope !== 'string' || !scope.trim())) {
     throw new Error(`crawlers/${name}.ts: scope must be a non-empty description`);
   }
@@ -57,6 +62,12 @@ export async function registerSite(db: Database, config: Config, name: string): 
 }
 
 const UNIT_MINUTES: Record<string, number> = { m: 1, h: 60, d: 24 * 60 };
+
+/** A crawler's `site.proxy` as the crawler row's proxy columns. */
+function proxySettings(name: string, proxy: unknown) {
+  const spec = parseProxy(`crawlers/${name}.ts`, proxy);
+  return { proxyType: spec?.type ?? null, proxyCountry: spec?.country ?? null };
+}
 
 /** `30m`, `6h` or `1d` in minutes. */
 function refreshMinutes(name: string, refresh: unknown): number {

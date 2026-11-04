@@ -15,7 +15,9 @@ import { coverage as buildCoverage, CoverageReport, ShapeGroup, urlPath } from '
 import { closingBracket, embeddedJson, jsonLd } from '../core/extract';
 import { sameProblem } from '../core/issues';
 import { inspectUrl as buildUrlReport, listSnapshots, URL_STATUS, UrlReport } from '../core/inspect';
-import { Config } from '../core/models';
+import { Config, ProxyType } from '../core/models';
+import { parseProxy, Proxy, proxies, ProxySpec, proxySpec, refusedStatus, viaProxy } from '../core/proxy';
+import { fetchText } from '../core/sitemap';
 import { probePage, ProbeReport } from '../core/pageprobe';
 import { scrapePreview, scrapePreviews } from '../core/preview';
 import { describeFailure, describeRegistration, populateSites } from '../core/register';
@@ -71,8 +73,47 @@ async function savePage(path: string, content: string | Buffer): Promise<void> {
   await rm(`${path}.fetches`, { recursive: true, force: true });
 }
 
+const SITE_PROXY_PARAM = z
+  .string()
+  .optional()
+  .describe(
+    'The site crawler name (crawlers/<site>.ts) whose proxy to fetch through, for a crawler not registered yet; ' +
+      "a registered site's url uses its site's proxy without it"
+  );
+
+/**
+ * The proxy a tool's request goes through: the named crawler's (registered, or
+ * as its module declares while it is being built), else that of the registered
+ * site whose seed is on the url's host; null when it is fetched directly.
+ */
+async function toolProxy(
+  db: Database,
+  config: Config,
+  { site, url, registered = false }: { site?: string; url?: string; registered?: boolean }
+): Promise<Proxy | null> {
+  const spec = await toolProxySpec(db, config, site, url, registered);
+  return spec && proxies().get(spec);
+}
+
+async function toolProxySpec(db: Database, config: Config, site?: string, url?: string, registered = false): Promise<ProxySpec | null> {
+  const rows = await db.query<{ id: number; name: string; seed: string | null; proxy_type: ProxyType | null; proxy_country: string | null }[]>(
+    `select s.id, s.name, u.url as seed, c.proxy_type, c.proxy_country
+       from site s join crawler c on c.id = s.crawler_id
+       left join url u on u.site_id = s.id and u.type = 'seed'`
+  );
+  const settings = (row: (typeof rows)[number]) => proxySpec({ proxyType: row.proxy_type, proxyCountry: row.proxy_country });
+  if (site !== undefined) {
+    const row = rows.find((r) => r.name === site || String(r.id) === site);
+    if (row) return settings(row);
+    return registered ? null : parseProxy(`crawlers/${site}.ts`, siteModule(site, config).site?.proxy);
+  }
+  const host = url && URL.canParse(url) ? new URL(url).host : null;
+  const row = host ? rows.find((r) => r.seed && URL.canParse(r.seed) && new URL(r.seed).host === host) : undefined;
+  return row ? settings(row) : null;
+}
+
 /** The restricted variant has no saveTo at all: unattended triage must not write files. */
-function makeWebfetch(readonly: boolean): DomainTool {
+function makeWebfetch(readonly: boolean, db: Database, config: Config): DomainTool {
   return {
     name: readonly ? 'webfetch_readonly' : 'webfetch',
     readOnly: readonly,
@@ -88,34 +129,39 @@ function makeWebfetch(readonly: boolean): DomainTool {
         'Request headers to add or override, e.g. {"x-requested-with": "XMLHttpRequest"} - the headers jscrawl_pageProbe listed for the call'
       ),
       format: z.enum(['html', 'jsonld', 'json']).optional().describe('"html" (default), "jsonld" or "json"'),
+      site: SITE_PROXY_PARAM,
       ...(readonly ? {} : { saveTo: z.string().optional().describe('Path to save the raw body to') }),
     },
-    async execute({ url, method = 'GET', body: requestBody, headers = {}, format = 'html', saveTo }, ctx) {
+    async execute({ url, method = 'GET', body: requestBody, headers = {}, format = 'html', site, saveTo }, ctx) {
       if (readonly && saveTo !== undefined) throw new Error('Unattended triage cannot save files');
       if (format !== 'html' && format !== 'jsonld' && format !== 'json') {
         throw new Error('format must be "html", "jsonld" or "json"');
       }
       const overridden = new Set(Object.keys(headers).map((name) => name.toLowerCase()));
-      const response = await request(url, {
-        method,
-        headers: [
-          ...REQUEST_HEADERS.filter(([name]) => !overridden.has(name.toLowerCase())),
-          ...(Object.entries(headers) as [string, string][]),
-        ],
-        ...(requestBody === undefined ? {} : requestPayload(requestBody)),
-        redirect: 'follow',
-        timeout: 30_000,
-        signal: AbortSignal.any([AbortSignal.timeout(30_000), ...(ctx.signal ? [ctx.signal] : [])]),
-        responseType: 'buffer',
-        retry: { retries: 3, delay: ({ attempt }: { attempt: number }) => 3000 * attempt },
-      });
+      const proxy = await toolProxy(db, config, { site, url });
+      const send = (route?: string) =>
+        request(url, {
+          method,
+          headers: [
+            ...REQUEST_HEADERS.filter(([name]) => !overridden.has(name.toLowerCase())),
+            ...(Object.entries(headers) as [string, string][]),
+          ],
+          ...(requestBody === undefined ? {} : requestPayload(requestBody)),
+          redirect: 'follow',
+          timeout: 30_000,
+          signal: AbortSignal.any([AbortSignal.timeout(30_000), ...(ctx.signal ? [ctx.signal] : [])]),
+          responseType: 'buffer',
+          ...(route ? { proxy: route } : { retry: { retries: 3, delay: ({ attempt }: { attempt: number }) => 3000 * attempt } }),
+        });
+      const response = proxy ? await viaProxy(proxy, 3, () => send(proxy.url), refusedStatus) : await send();
       const raw = response.body as Buffer;
       // gzip's magic number: a .gz file the server did not mark as content-encoded
       const zipped = raw[0] === 0x1f && raw[1] === 0x8b;
       const content = zipped ? gunzipSync(raw) : raw;
       const text = content.toString('utf8');
       const head = `HTTP ${response.statusCode} ${method} ${response.url}\ncontent-type: ${response.contentType}` +
-        (zipped ? ' (gzipped; unzipped below)' : '');
+        (zipped ? ' (gzipped; unzipped below)' : '') +
+        (proxy ? `\nvia ${proxy.label}` : '');
       let saved = '';
       if (saveTo) {
         const path = resolve(ctx.cwd, saveTo);
@@ -421,7 +467,7 @@ function renderUrlReport(report: UrlReport, snapshots: string[]): string {
  * framework hints and JSON-LD, so extraction targets the right source. The
  * read-only variant has no saveTo: unattended triage must not write files.
  */
-function makePageProbe(readonly: boolean): DomainTool {
+function makePageProbe(readonly: boolean, db: Database, config: Config): DomainTool {
   return {
     name: readonly ? 'pageProbe_readonly' : 'pageProbe',
     readOnly: readonly,
@@ -439,12 +485,16 @@ function makePageProbe(readonly: boolean): DomainTool {
     schema: {
       url: z.string().describe('The page url to probe'),
       interact: z.boolean().optional().describe('Change each option picker (selects, radio swatches) and report what it fetches'),
+      site: SITE_PROXY_PARAM,
       ...(readonly ? {} : { saveTo: z.string().optional().describe('Path to save the rendered html to') }),
     },
-    async execute({ url, interact = false, saveTo }, ctx) {
+    async execute({ url, interact = false, site, saveTo }, ctx) {
       ctx.signal?.throwIfAborted();
       if (readonly && saveTo !== undefined) throw new Error('Unattended triage cannot save files');
-      const report = await probePage(url, { interact });
+      const proxy = await toolProxy(db, config, { site, url });
+      const report = proxy
+        ? await viaProxy(proxy, 2, () => probePage(url, { interact, proxy: proxy.url }))
+        : await probePage(url, { interact });
       let saved = '';
       if (saveTo) {
         const path = resolve(ctx.cwd, saveTo);
@@ -783,7 +833,7 @@ function validateCrawlerTool(config: Config): DomainTool {
  * The crawler database schema, so sql queries are written against real column
  * names instead of guessed ones.
  */
-function coverageTool(db: Database): DomainTool {
+function coverageTool(db: Database, config: Config): DomainTool {
   return {
     name: 'coverage',
     readOnly: true,
@@ -798,7 +848,8 @@ function coverageTool(db: Database): DomainTool {
     },
     async execute({ site }, ctx) {
       ctx.signal?.throwIfAborted();
-      const report = await buildCoverage(db, site, { signal: ctx.signal });
+      const proxy = await toolProxy(db, config, { site, registered: true });
+      const report = await buildCoverage(db, site, { signal: ctx.signal, fetch: (target) => fetchText(target, ctx.signal, proxy) });
       return report ? renderCoverage(report) : `No site named "${site}".`;
     },
   };
@@ -923,7 +974,7 @@ function scrapeUrlTool(db: Database, config: Config): DomainTool {
         await crawler.process(await crawler.db.getUrl(url));
       } finally {
         await crawler.db.end();
-        await crawler.client.close();
+        await crawler.close();
       }
       return urlReportText(db, config, url, ctx);
     },
@@ -1244,15 +1295,15 @@ function crawlTools({ db, jscrawlUrl, apiToken }: DomainToolDeps): DomainTool[] 
 function coreTools(deps: DomainToolDeps): DomainTool[] {
   const { db, config } = deps;
   return [
-    makeWebfetch(false),
-    makeWebfetch(true),
+    makeWebfetch(false, db, config),
+    makeWebfetch(true, db, config),
     html,
     json,
     sql(db),
     inspectUrl(db, config),
-    coverageTool(db),
-    makePageProbe(false),
-    makePageProbe(true),
+    coverageTool(db, config),
+    makePageProbe(false, db, config),
+    makePageProbe(true, db, config),
     scrapePreviewTool(config),
     dryRunTool(config),
     validateCrawlerTool(config),

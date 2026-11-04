@@ -12,11 +12,11 @@ import { Database } from 'sqlex';
 import { domain } from './domain';
 
 /** Bumped when the core's tables change shape; the migrations bring a database up to it. */
-export const CORE_SCHEMA_VERSION = 1;
+export const CORE_SCHEMA_VERSION = 2;
 
 const ETC = resolve(__dirname, '..', '..', 'etc');
 export const CORE_SCHEMA = resolve(ETC, 'schema.sql');
-const CORE_MIGRATIONS = ['migrate-page-snapshots.sql', 'migrate-crawl-settings.sql', 'migrate-snapshot-metrics.sql'].map((name) =>
+const CORE_MIGRATIONS = ['migrate-page-snapshots.sql', 'migrate-crawl-settings.sql', 'migrate-snapshot-metrics.sql', 'migrate-crawler-proxy.sql'].map((name) =>
   resolve(ETC, name)
 );
 

@@ -45,9 +45,10 @@ export class PuppetClient implements HttpClient {
     this.client = null;
   }
 
+  /** The browser is launched on the first request, through that request's proxy. */
   async get(url: string, options: RequestOptions): Promise<Response> {
     if (!this.client) {
-      this.client = await WebClient.create();
+      this.client = await WebClient.create(options.proxy?.toString());
     }
     const fetchStart = new Date();
     const rawResponse = await this.client.fetch(url);
@@ -62,9 +63,10 @@ export class PuppetClient implements HttpClient {
       fetchEnd: new Date(),
     });
   }
+  /** Closes the browser; the next request launches a new one. */
   async close() {
-    if (this.client) {
-      await this.client.close();
-    }
+    const client = this.client;
+    this.client = null;
+    if (client) await client.close();
   }
 }

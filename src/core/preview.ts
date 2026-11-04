@@ -8,6 +8,7 @@ import { Crawler } from './base-crawler';
 import { CoreDatabase } from './base-database';
 import { domain } from './domain';
 import { readPage } from './fetch';
+import { parseProxy, ProxyLease, releaseLease } from './proxy';
 import { siteModule } from './sites';
 import { Config, CrawlerOptions, SiteUrl } from './models';
 import type { FixtureEntry } from './fixtures';
@@ -36,12 +37,22 @@ export interface PreviewPageResult {
 const label = (record: any) => record.code ?? record.url ?? record.name ?? record.value ?? record.id ?? '(record)';
 
 async function previewDatabase(config: Config, name: string) {
-  const Plugin = siteModule(name, config).default;
+  const module = siteModule(name, config);
+  const Plugin = module.default;
   const db = new (domain().database)(config.database);
   await db.buildSchema();
   if (!(await db.init(name))) {
     // not registered yet: a stand-in site, as nothing is flushed
-    db.site = { id: 0, name, currency: null, locale: null, scope: null, expect: null, crawler: { usePuppeteer: false } as CrawlerOptions };
+    const proxy = parseProxy(`crawlers/${name}.ts`, module.site?.proxy);
+    db.site = {
+      id: 0,
+      name,
+      currency: null,
+      locale: null,
+      scope: null,
+      expect: null,
+      crawler: { usePuppeteer: false, proxyType: proxy?.type ?? null, proxyCountry: proxy?.country ?? null } as CrawlerOptions,
+    };
   }
   return { Plugin, db };
 }
@@ -51,9 +62,10 @@ async function previewDatabase(config: Config, name: string) {
  * `<file>.fetches` (a crawl snapshot already has the crawl's) and replayed from
  * there, so a fixture is checked against the same responses each time.
  */
-function previewCrawler(Plugin: any, db: CoreDatabase, config: Config, file: string): Crawler {
+function previewCrawler(Plugin: any, db: CoreDatabase, config: Config, file: string, proxy: ProxyLease): Crawler {
   const crawler: Crawler = new Plugin(db, config);
   crawler.fetches = { dir: `${file}.fetches` };
+  crawler.proxy = proxy;
   return crawler;
 }
 
@@ -86,11 +98,13 @@ export async function scrapePreview(
   limit = Infinity
 ): Promise<{ [table: string]: PreviewTable }> {
   const { Plugin, db } = await previewDatabase(config, name);
+  const proxy: ProxyLease = {};
   try {
     const url: SiteUrl = { id: 0, url: pageUrl, type, data: null, status: 0, version: 0, site: { id: db.site.id, name } };
-    await previewCrawler(Plugin, db, config, file).scrape(await readPage(file, pageUrl), url);
+    await previewCrawler(Plugin, db, config, file, proxy).scrape(await readPage(file, pageUrl), url);
     return previewTables(db, limit);
   } finally {
+    await releaseLease(proxy);
     await db.end();
   }
 }
@@ -108,6 +122,7 @@ export async function scrapePreviews(
   tables?: string[]
 ): Promise<PreviewPageResult[]> {
   const { Plugin, db } = await previewDatabase(config, name);
+  const proxy: ProxyLease = {};
   try {
     const results: PreviewPageResult[] = [];
     for (const page of pages) {
@@ -115,7 +130,7 @@ export async function scrapePreviews(
       const result: PreviewPageResult = { type: page.type, file: page.file, url: pageUrl, ok: true, tables: {} };
       const url: SiteUrl = { id: 0, url: pageUrl, type: page.type, data: null, status: 0, version: 0, site: { id: db.site.id, name } };
       try {
-        const crawler = previewCrawler(Plugin, db, config, page.file);
+        const crawler = previewCrawler(Plugin, db, config, page.file, proxy);
         const response = await readPage(page.file, pageUrl);
         // Source evidence comes from the fixture, independently of handlers
         // overriding scrape() or replacing/mutating their working document.
@@ -139,6 +154,7 @@ export async function scrapePreviews(
     }
     return results;
   } finally {
+    await releaseLease(proxy);
     await db.end();
   }
 }

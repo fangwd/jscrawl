@@ -196,6 +196,13 @@ Framework cheat sheet (where page data usually hides):
 Keep the response from the static confirmation above as evidence. If the endpoint
 only works inside the browser, prefer embedded state or the rendered DOM instead.
 
+When the request says the site shows different prices or products by country,
+set `proxy: { type: 'tor', country: 'AU' }` (the request's country) in the site
+config before fetching: the crawl then goes out through a Tor exit in that
+country. Pass `site` to `jscrawl_webfetch` and `jscrawl_pageProbe` until the
+crawler is registered, so what you study is what the crawl will see; after
+that, the site's urls go through its proxy on their own.
+
 ## Learn what the site's urls mean, from pages
 
 In pass 1 the classifier only needs the shapes of the pages you saved - the

@@ -62,6 +62,33 @@ What the core serves about the domain, beside the crawl's own routes:
   domain declares. It runs the deployment's CLI (`src/cli.ts --live-check`),
   since it runs crawler code.
 
+### Proxies
+
+A site whose content depends on where the visitor is (prices by country)
+fetches through Tor, pinned to a country, from its crawler's `site`:
+
+```ts
+export const site: SiteConfig = { waitTime: 3, proxy: { type: 'tor', country: 'AU' } };
+```
+
+The Tor instances come from [torm](https://github.com/fangwd/torm), which runs
+on the same machine (`torm serve`, with `--geoip-file` for countries); point
+the deployment at it with `TORM_URL` and `TORM_TOKEN`. Without them a site
+that asks for Tor fails instead of fetching directly. Everything a crawl
+fetches goes through the site's proxy - pages, robots.txt, a handler's
+`fetch`, the browser under `usePuppeteer` - as do the agent's webfetch,
+pageProbe, coverage and previews for that site (`site` names a crawler not
+registered yet).
+
+- A crawl process starts its own instance and stops it when it ends; the
+  supervisor stops what a killed crawl left (torm records each instance's
+  owner, `jscrawl:run:<id>`). The tool server shares one instance per country
+  and stops it after 15 idle minutes.
+- A failed request - a network error, or 403, 429 or 503, which an exit IP
+  draws - is retried on a new Tor identity (at most every 10 s, as Tor allows),
+  or on a new instance when the old one stopped answering, up to the site's
+  `maxRetryCount`. Only then does it count towards the crawl's blocked rule.
+
 ## Adding a domain
 
 A domain is an app repository that is also its deployment: the domain's code,

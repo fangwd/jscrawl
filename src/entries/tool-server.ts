@@ -19,6 +19,7 @@ import { Database } from 'sqlex';
 import { loadConfig } from '../core/config';
 import { sameSecret } from '../web/auth';
 import { DomainTool, domainTools } from '../mcp/tools';
+import { ProxyPool, reapProxies, useProxies } from '../core/proxy';
 
 function version(): string {
   try {
@@ -74,6 +75,9 @@ export async function runToolServer(): Promise<void> {
       connectionLimit: Math.min(connection.connectionLimit ?? POOL_LIMIT, POOL_LIMIT),
     },
   });
+  // the tools share one Tor instance per country; a previous tool server's are stopped first
+  await reapProxies({ tools: true }).catch((err) => console.error('reaping proxies:', err));
+  useProxies(new ProxyPool());
   const cwd = process.cwd();
   const tools = domainTools({
     db,
