@@ -15,7 +15,7 @@ import { coverage as buildCoverage, CoverageReport, ShapeGroup, urlPath } from '
 import { closingBracket, embeddedJson, jsonLd } from '../core/extract';
 import { sameProblem } from '../core/issues';
 import { inspectUrl as buildUrlReport, listSnapshots, URL_STATUS, UrlReport } from '../core/inspect';
-import { Config, ProxyType } from '../core/models';
+import { Config } from '../core/models';
 import { parseProxy, Proxy, proxies, ProxySpec, proxySpec, refusedStatus, viaProxy } from '../core/proxy';
 import { fetchText } from '../core/sitemap';
 import { probePage, ProbeReport } from '../core/pageprobe';
@@ -96,7 +96,7 @@ async function toolProxy(
 }
 
 async function toolProxySpec(db: Database, config: Config, site?: string, url?: string, registered = false): Promise<ProxySpec | null> {
-  const rows = await db.query<{ id: number; name: string; seed: string | null; proxy_type: ProxyType | null; proxy_country: string | null }[]>(
+  const rows = await db.query<{ id: number; name: string; seed: string | null; proxy_type: string | null; proxy_country: string | null }[]>(
     `select s.id, s.name, u.url as seed, c.proxy_type, c.proxy_country
        from site s join crawler c on c.id = s.crawler_id
        left join url u on u.site_id = s.id and u.type = 'seed'`
@@ -928,7 +928,7 @@ function populateTool({ db, config }: DomainToolDeps): DomainTool {
     description:
       'Register every crawler under crawlers/ with the domain database: upsert crawler/site rows and queue ' +
       'each module\'s SEED_URL. Idempotent, safe to run repeatedly, and required after creating, renaming or ' +
-      'changing a crawler so the site is usable without a human running npm run jscrawl:populate.',
+      'changing a crawler so the site is usable without a human running npm run jscrawl:sync.',
     schema: {},
     async execute(_args, ctx) {
       ctx.signal?.throwIfAborted();

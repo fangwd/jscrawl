@@ -9,6 +9,8 @@ import { loadConfig } from '../core/config';
 import { BLOCKED_EXIT_CODE, Config } from '../core/models';
 import { domain } from '../core/domain';
 import { describeFailure, describeRegistration, populateSites, registerSite } from '../core/register';
+import { describeStale, removeSite, staleSites } from '../core/prune';
+import { createInterface } from 'readline/promises';
 import { liveCheck } from '../core/live-check';
 import { scrapePreview } from '../core/preview';
 import { getCrawler, getDatabase, sha1 } from '../core/utils';
@@ -17,7 +19,7 @@ import { z } from 'zod';
 
 const Command = z.discriminatedUnion("type", [
   z.object({ type: z.literal("setup"), argv: z.array(z.string()).length(1) }),
-  z.object({ type: z.literal("populate"), argv: z.array(z.string()).length(0) }),
+  z.object({ type: z.literal("sync"), argv: z.array(z.string()).length(0), yes: z.boolean().optional() }),
   z.object({ type: z.literal("scrape-file"), argv: z.array(z.string()).length(3), url: z.string().optional() }),
   z.object({
     type: z.literal("add-url"),
@@ -53,7 +55,9 @@ type Command = z.infer<typeof Command>;
 
 const USAGE = `npm run jscrawl -- <command>
   --setup <site>                              register crawlers/<site>.ts and queue its SEED_URL
-  --populate                                  register every crawler (npm run jscrawl:populate)
+  --sync [--yes]                              register every crawler and remove the sites, data and test
+                                              pages of crawlers that are gone (npm run jscrawl:sync);
+                                              asks before removing unless --yes
   --scrape-file <site> <type> <file> [--url <url>]
                                               print the records a saved page yields; writes nothing
   --add-url <url>... --kind <type>            queue urls with a type (seed, category, product)
@@ -82,7 +86,7 @@ function parseCommand(): Command {
     if (!match) {
       options.argv.push(argv);
     }
-    else if (/^(setup|populate|scrape-file|add-url|fetch|scrape-url|scrape|crawl|html|add-urls|reset|export-feed|live-check)$/.test(match[1])) {
+    else if (/^(setup|sync|scrape-file|add-url|fetch|scrape-url|scrape|crawl|html|add-urls|reset|export-feed|live-check)$/.test(match[1])) {
       options['type'] = match[1];
     }
     else if (/^(kind|type|regex|site|url)$/.test(match[1])) {
@@ -92,7 +96,7 @@ function parseCommand(): Command {
     else if (/^(priority)$/.test(match[1])) {
       i++;
       options[match[1]] = +process.argv[i];
-    } else if (/^(flush)$/.test(match[1])) {
+    } else if (/^(flush|yes)$/.test(match[1])) {
       options[match[1]] = true;
     }
     else if (match[1] === 'help') {
@@ -120,8 +124,8 @@ export async function runCli(): Promise<void> {
     case "setup":
       await setup(cmd.argv[0]);
       break;
-    case "populate":
-      await populate();
+    case "sync":
+      await sync(cmd.yes ?? false);
       break;
     case "scrape-file":
       await scrapeFile(cmd.argv[0], cmd.argv[1], cmd.argv[2], cmd.url);
@@ -211,16 +215,49 @@ async function setup(name: string) {
   print(describeRegistration(registration));
 }
 
-// npm run jscrawl:populate
-// Registers (or updates) every crawler module in the sites directory.
-async function populate() {
+// npm run jscrawl:sync
+// Registers (or updates) every crawler module in the sites directory, then
+// removes the sites, crawled data and test pages of crawlers no longer there.
+async function sync(yes: boolean) {
   const db = await getDatabase(config);
-  const { registrations, failures } = await populateSites(db, config);
-  await db.end();
-  for (const registration of registrations) print(describeRegistration(registration));
-  for (const failure of failures) print(describeFailure(failure));
-  print(`Populated ${registrations.length} site(s)${failures.length ? `; ${failures.length} failed` : ''}`);
-  if (failures.length) process.exitCode = 1;
+  try {
+    const { registrations, failures } = await populateSites(db, config);
+    for (const registration of registrations) print(describeRegistration(registration));
+    for (const failure of failures) print(describeFailure(failure));
+    print(`Registered ${registrations.length} site(s)${failures.length ? `; ${failures.length} failed` : ''}`);
+    if (failures.length) process.exitCode = 1;
+
+    const stale = await staleSites(db, config);
+    if (stale.length === 0) return;
+    print(`\nNo crawler module for ${stale.length} name(s); removing them takes away:`);
+    for (const site of stale) print(`  ${describeStale(site)}`);
+    const removable = stale.filter((site) => !site.running);
+    if (removable.length === 0) return;
+    if (!yes && !(await confirmed(`Remove ${removable.length} of them for good? [y/N] `))) {
+      print('Nothing removed.');
+      return;
+    }
+    for (const site of removable) {
+      await removeSite(db, config, site);
+      print(`Removed ${site.name}`);
+    }
+  } finally {
+    await db.end();
+  }
+}
+
+/** A yes from the terminal; without one (piped, CI) the answer is no: pass --yes. */
+async function confirmed(question: string): Promise<boolean> {
+  if (!process.stdin.isTTY) {
+    print('Not removing without a terminal to confirm on: pass --yes.');
+    return false;
+  }
+  const terminal = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return /^y(es)?$/i.test((await terminal.question(question)).trim());
+  } finally {
+    terminal.close();
+  }
 }
 
 // npm run jscrawl -- --scrape-file <site> <seed|category|product> <page.html> [--url <page url>]

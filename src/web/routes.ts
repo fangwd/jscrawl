@@ -19,6 +19,7 @@ import { Supervisor, SupervisorError } from '../core/supervisor';
 import * as actions from './api/actions';
 import { isService } from './auth';
 import * as read from './api/read';
+import * as proxies from './api/proxies';
 
 export interface WebDeps {
   db: Database;
@@ -125,6 +126,20 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
     } catch (err) {
       return fail(res, err);
     }
+  }
+
+  if (resource === 'proxies' && rawId && method !== 'GET') {
+    const id = decodeURIComponent(rawId);
+    const outcome =
+      method === 'DELETE' && !sub
+        ? await proxies.removeProxy(id)
+        : method === 'POST' && sub === 'renew' && !extra
+          ? await proxies.renewProxy(id)
+          : method === 'POST' && sub === 'check' && !extra
+            ? await proxies.checkProxy(id)
+            : null;
+    if (!outcome) return sendJson(res, 405, { error: 'Method not allowed' });
+    return sendJson(res, outcome.status, outcome.body);
   }
 
   if (method === 'POST') {
@@ -235,6 +250,8 @@ async function api(deps: WebDeps, req: IncomingMessage, res: ServerResponse, url
   }
 
   if (resource === 'skills' && !rawId) return sendJson(res, 200, await agentSkills());
+
+  if (resource === 'proxies' && !rawId) return sendJson(res, 200, await proxies.proxiesOverview(db));
 
   if (resource === 'docs' && rawId === 'feed-format' && !sub) {
     const docs = domain().feed?.docs;

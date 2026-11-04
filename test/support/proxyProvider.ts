@@ -1,4 +1,4 @@
-// Stand-ins for the proxy tests: torm's HTTP API, whose instances are SOCKS5
+// Stand-ins for the proxy tests: a proxy provider whose proxies are SOCKS5
 // servers on this machine, and a site behind them.
 
 import { createServer as createHttpServer, IncomingMessage, Server as HttpServer, ServerResponse } from 'http';
@@ -57,76 +57,70 @@ export async function startSocks(): Promise<{ port: number; connects: string[]; 
   };
 }
 
-export interface FakeInstance {
-  slot: number;
-  pid: number;
-  socksAddr: string;
-  socksPort: number;
-  owner?: string;
-  exitCountry?: string;
+export interface FakeProxy {
+  id: number;
+  url: string;
+  type?: string;
+  country?: string | null;
+  owner?: string | null;
 }
 
-/** torm's API over SOCKS servers it starts; `calls` lists what it was asked, e.g. `POST /instances/0/reload`. */
-export async function startTorm() {
+/**
+ * A proxy provider (docs/proxy-provider.md) whose proxies are SOCKS5 servers on
+ * this machine; `calls` lists what it was asked, e.g. `POST /proxies/0/renew`.
+ */
+export async function startProvider() {
   const calls: string[] = [];
-  const starts: { country: string | null; owner: string }[] = [];
-  const instances = new Map<number, FakeInstance & { socks: Awaited<ReturnType<typeof startSocks>> }>();
-  let nextSlot = 0;
-  const reply = (res: ServerResponse, status: number, body: unknown) =>
-    res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
-  const info = ({ socks: _socks, ...instance }: FakeInstance & { socks: unknown }) => instance;
+  const created: { type: string; country: string | null; owner: string }[] = [];
+  const proxies = new Map<number, FakeProxy & { socks: Awaited<ReturnType<typeof startSocks>> }>();
+  let nextId = 0;
+  const reply = (res: ServerResponse, status: number, body?: unknown) =>
+    body === undefined ? res.writeHead(status).end() : res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
+  const info = ({ socks: _socks, ...proxy }: FakeProxy & { socks: unknown }) => proxy;
 
   const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
     calls.push(`${req.method} ${req.url}`);
-    if (req.headers.authorization !== 'Bearer torm-token') return reply(res, 401, { error: 'unauthorized' });
-    const slot = Number(/^\/instances\/(\d+)/.exec(req.url ?? '')?.[1]);
-    if (req.method === 'POST' && req.url === '/instances') {
+    if (req.headers.authorization !== 'Bearer provider-token') return reply(res, 401, { error: 'unauthorized' });
+    if (req.method === 'POST' && req.url === '/proxies') {
       const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
-      starts.push({ country: body.country, owner: body.owner });
+      created.push({ type: body.type, country: body.country, owner: body.owner });
       const socks = await startSocks();
-      const instance = {
-        slot: nextSlot++,
-        pid: 4000 + nextSlot,
-        socksAddr: '127.0.0.1',
-        socksPort: socks.port,
-        owner: body.owner,
-        ...(body.country ? { exitCountry: body.country } : {}),
-        socks,
-      };
-      instances.set(instance.slot, instance);
-      return reply(res, 201, info(instance));
+      const proxy = { id: nextId++, url: `socks5h://127.0.0.1:${socks.port}`, type: body.type, country: body.country, owner: body.owner, socks };
+      proxies.set(proxy.id, proxy);
+      return reply(res, 201, info(proxy));
     }
-    if (req.method === 'GET' && req.url === '/instances') return reply(res, 200, [...instances.values()].map(info));
-    const instance = instances.get(slot);
-    if (!instance) return reply(res, 404, { error: `no running instance matches slot ${slot}` });
-    if (req.method === 'POST' && req.url?.endsWith('/reload')) return reply(res, 200, info(instance));
+    if (req.method === 'GET' && req.url === '/proxies') return reply(res, 200, [...proxies.values()].map(info));
+    const id = Number(/^\/proxies\/(\d+)/.exec(req.url ?? '')?.[1]);
+    const proxy = proxies.get(id);
+    if (!proxy) return reply(res, 404, { error: `no proxy ${id}` });
+    if (req.method === 'POST' && req.url?.endsWith('/renew')) return reply(res, 200, info(proxy));
     if (req.method === 'DELETE') {
-      instances.delete(slot);
-      await instance.socks.close();
-      return reply(res, 200, info(instance));
+      proxies.delete(id);
+      await proxy.socks.close();
+      return reply(res, 204);
     }
     reply(res, 404, { error: 'not found' });
   });
   const port = await listen(server);
   return {
     url: `http://127.0.0.1:${port}`,
-    token: 'torm-token',
+    token: 'provider-token',
     calls,
-    starts,
-    instances,
-    /** Adds an instance someone else started, as torm would list it. */
-    adopt(instance: FakeInstance) {
-      instances.set(instance.slot, { ...instance, socks: { port: 0, connects: [], close: async () => undefined } });
-      nextSlot = Math.max(nextSlot, instance.slot + 1);
+    created,
+    proxies,
+    /** Adds a proxy someone else created, as the provider would list it. */
+    adopt(proxy: FakeProxy) {
+      proxies.set(proxy.id, { ...proxy, socks: { port: 0, connects: [], close: async () => undefined } });
+      nextId = Math.max(nextId, proxy.id + 1);
     },
-    /** Stops an instance's SOCKS server without torm knowing, as a crashed tor would. */
-    async crash(slot: number) {
-      await instances.get(slot)!.socks.close();
+    /** Stops a proxy's SOCKS server without the provider knowing, as a crashed proxy would. */
+    async crash(id: number) {
+      await proxies.get(id)!.socks.close();
     },
     async close() {
-      for (const instance of instances.values()) await instance.socks.close();
+      for (const proxy of proxies.values()) await proxy.socks.close();
       await close(server);
     },
   };

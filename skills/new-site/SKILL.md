@@ -197,11 +197,12 @@ Keep the response from the static confirmation above as evidence. If the endpoin
 only works inside the browser, prefer embedded state or the rendered DOM instead.
 
 When the request says the site shows different prices or products by country,
-set `proxy: { type: 'tor', country: 'AU' }` (the request's country) in the site
-config before fetching: the crawl then goes out through a Tor exit in that
-country. Pass `site` to `jscrawl_webfetch` and `jscrawl_pageProbe` until the
-crawler is registered, so what you study is what the crawl will see; after
-that, the site's urls go through its proxy on their own.
+set `proxy: { type, country }` in the site config before fetching - `type` one
+the deployment's proxy provider offers (its instructions name them), `country`
+the request's: the crawl then goes out through a proxy in that country. Pass
+`site` to `jscrawl_webfetch` and `jscrawl_pageProbe` until the crawler is
+registered, so what you study is what the crawl will see; after that, the
+site's urls go through its proxy on their own.
 
 ## Learn what the site's urls mean, from pages
 

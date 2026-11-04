@@ -106,7 +106,7 @@ export class Supervisor {
     await this.reapProxies();
   }
 
-  /** Stops the Tor instances of runs that are over: a crawl killed before it could stop its own. */
+  /** Removes the proxies of runs that are over: a crawl killed before it could remove its own. */
   private async reapProxies(): Promise<void> {
     try {
       const running = await this.db.query<{ id: number }[]>("select id from crawler_run where status = 'running'");
@@ -400,7 +400,7 @@ export class Supervisor {
     const logPath = join(this.options.logDir, `${kind}-${run.id}.log`);
     const child = spawn(argv[0], argv.slice(1), {
       cwd: this.options.cwd,
-      // names the run's proxy instances, so they can be stopped once it is over
+      // names the run's proxies, so they can be removed once it is over
       env: { ...process.env, JSCRAWL_RUN_ID: String(run.id) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

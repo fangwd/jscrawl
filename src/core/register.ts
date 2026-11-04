@@ -1,5 +1,5 @@
 // Registers crawler modules with the domain database: the crawler/site rows and
-// the optional SEED_URL. Shared by `--setup`, `jscrawl:populate` and the agent's
+// the optional SEED_URL. Shared by `--setup`, `--sync` and the agent's
 // populate tool, so creating a crawler and registering it cannot drift apart.
 
 import { Database } from 'sqlex';

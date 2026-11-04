@@ -26,8 +26,8 @@ CREATE TABLE crawler (
     random_wait         integer NOT NULL DEFAULT 0,      -- extra random seconds
     thread_count        integer NOT NULL DEFAULT 1,
     max_retry_count     integer NOT NULL DEFAULT 5,
-    proxy_type          text CHECK (proxy_type IN ('tor')), -- null: fetched directly
-    proxy_country       char(2) CHECK (proxy_country ~ '^[A-Z]{2}$'), -- the exit's ISO 3166-1 country; null: any
+    proxy_type          text CHECK (proxy_type ~ '^[a-z0-9][a-z0-9-]*$'), -- one the proxy provider offers; null: fetched directly
+    proxy_country       char(2) CHECK (proxy_country ~ '^[A-Z]{2}$'), -- where the proxy's requests come from (ISO 3166-1); null: any
     use_puppeteer       boolean NOT NULL DEFAULT false,
     page_snapshots      text NOT NULL DEFAULT 'gzip'
                         CHECK (page_snapshots IN ('gzip', 'raw', 'off')),

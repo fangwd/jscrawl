@@ -1,35 +1,40 @@
-// The proxy a site's requests go through. `tor` sites fetch through Tor
-// instances that torm (github.com/fangwd/torm) runs on this machine, pinned to
-// the site's country: a crawl process starts its own instance and stops it when
-// it ends; the tool server shares one instance per country across tool calls
-// and stops it once idle. torm is optional: only a site that asks for a proxy
-// needs TORM_URL and TORM_TOKEN.
+// The proxy a site's requests go through. A site that names a proxy type in
+// its crawler's `site.proxy` fetches through proxies from the deployment's
+// proxy provider: a service that implements docs/proxy-provider.md, named by
+// PROXY_PROVIDER_URL and PROXY_PROVIDER_TOKEN. A crawl process takes its own
+// proxy and removes it when it ends; the tool server shares one per type and
+// country across tool calls and removes it once idle. Only a site that asks
+// for a proxy needs a provider.
 
 import { request } from 'yareq';
-import type { CrawlerOptions, ProxyType } from './models';
-
-export const PROXY_TYPES: readonly ProxyType[] = ['tor'];
+import type { CrawlerOptions } from './models';
 
 export interface ProxySpec {
-  type: ProxyType;
-  /** ISO 3166-1 alpha-2, uppercase; null: any exit. */
+  /** A proxy type the provider offers; jscrawl does not interpret it. */
+  type: string;
+  /** ISO 3166-1 alpha-2, uppercase; null: any country. */
   country: string | null;
 }
 
 /** The site's requests cannot go through its proxy: fatal to the crawl, never a page failure. */
-export class ProxyError extends Error {}
+export class ProxyError extends Error {
+  /** The provider's HTTP status, when it answered with an error. */
+  constructor(message: string, readonly status?: number) {
+    super(message);
+  }
+}
 
 /** A route out for a site's requests, which can be renewed or replaced when it fails. */
 export interface Proxy {
-  /** For yareq: `socks5h://` so host names resolve at the exit. */
+  /** For the HTTP client and the browser: `socks5h://`, `socks5://` or `http://`. */
   readonly url: string;
-  /** For logs: `tor AU #3`. */
+  /** For logs: `<type> <country> #<id>`. */
   readonly label: string;
   /** Bumped by every renewal and replacement; a browser launched on an older one reconnects. */
   readonly generation: number;
-  /** A new exit (a new Tor identity); concurrent calls share one renewal. */
+  /** A new route out (a new exit); concurrent calls share one renewal. */
   renew(): Promise<void>;
-  /** A fresh instance, for one that stopped answering. */
+  /** A new proxy, for one that stopped answering. */
   replace(): Promise<void>;
   /** Whether `error` says the proxy itself is down rather than the route through it. */
   isDown(error: unknown): boolean;
@@ -40,6 +45,9 @@ export interface ProxySource {
   release(proxy: Proxy): Promise<void>;
 }
 
+/** A proxy type as a crawler names it, and as the crawler table stores it. */
+const PROXY_TYPE = /^[a-z0-9][a-z0-9-]*$/;
+
 /** A site's proxy as configured, or null when it is fetched directly. */
 export function proxySpec(options: Pick<CrawlerOptions, 'proxyType' | 'proxyCountry'>): ProxySpec | null {
   return options.proxyType ? { type: options.proxyType, country: options.proxyCountry?.trim().toUpperCase() || null } : null;
@@ -48,51 +56,50 @@ export function proxySpec(options: Pick<CrawlerOptions, 'proxyType' | 'proxyCoun
 /** A crawler module's `site.proxy`, validated; `where` names it in the error. */
 export function parseProxy(where: string, value: unknown): ProxySpec | null {
   if (value === undefined || value === null) return null;
-  if (typeof value !== 'object') throw new Error(`${where}: proxy must be an object, e.g. { type: 'tor', country: 'AU' }`);
+  if (typeof value !== 'object') throw new Error(`${where}: proxy must be an object, e.g. { type: 'residential', country: 'AU' }`);
   const { type, country, ...rest } = value as { type?: unknown; country?: unknown };
-  if (!PROXY_TYPES.includes(type as ProxyType)) {
-    throw new Error(`${where}: proxy.type must be one of ${PROXY_TYPES.join(', ')}`);
+  if (typeof type !== 'string' || !PROXY_TYPE.test(type)) {
+    throw new Error(`${where}: proxy.type must name a type the proxy provider offers (lower-case letters, digits and dashes)`);
   }
   if (Object.keys(rest).length) throw new Error(`${where}: proxy takes type and country only`);
   if (country !== undefined && (typeof country !== 'string' || !/^[A-Za-z]{2}$/.test(country))) {
     throw new Error(`${where}: proxy.country must be a two-letter country code, e.g. 'AU'`);
   }
-  return { type: type as ProxyType, country: country === undefined ? null : (country as string).toUpperCase() };
+  return { type, country: country === undefined ? null : (country as string).toUpperCase() };
 }
 
-/** What torm reports about an instance (see torm's InstanceInfo). */
-interface TormInstance {
-  slot?: number;
-  pid: number;
-  socksAddr: string;
-  socksPort: number;
-  owner?: string;
-  exitCountry?: string;
+/** A proxy as the provider describes it (docs/proxy-provider.md). */
+export interface ProvidedProxy {
+  id: string | number;
+  url: string;
+  type?: string;
+  country?: string | null;
+  owner?: string | null;
 }
 
-/** torm's HTTP API. */
-export class Torm {
+/** The proxy provider's HTTP API (docs/proxy-provider.md). */
+export class ProxyProvider {
   constructor(private readonly base: string, private readonly token: string) {}
 
-  /** The torm the environment names, or null when it names none. */
-  static fromEnv(): Torm | null {
-    const base = process.env.TORM_URL;
-    const token = process.env.TORM_TOKEN;
-    return base && token ? new Torm(base.replace(/\/+$/, ''), token) : null;
+  /** The provider the environment names, or null when it names none. */
+  static fromEnv(): ProxyProvider | null {
+    const base = process.env.PROXY_PROVIDER_URL;
+    const token = process.env.PROXY_PROVIDER_TOKEN;
+    return base && token ? new ProxyProvider(base.replace(/\/+$/, ''), token) : null;
   }
 
-  private async call<T>(method: string, path: string, json?: unknown): Promise<T> {
+  /** One API call; only a create may take minutes, as a new proxy is answered once usable. */
+  private async call<T>(method: string, path: string, json?: unknown, timeout = 30_000): Promise<T> {
     let response;
     try {
       response = await request(`${this.base}${path}`, {
         method,
         headers: { authorization: `Bearer ${this.token}` },
         ...(json === undefined ? {} : { json }),
-        // a start answers once tor has bootstrapped, which can take minutes
-        timeout: 300_000,
+        timeout,
       });
     } catch (err: any) {
-      throw new ProxyError(`torm ${method} ${path}: ${err?.message ?? err}`);
+      throw new ProxyError(`proxy provider ${method} ${path}: ${err?.message ?? err}`);
     }
     if (response.statusCode >= 300) {
       let error = response.text();
@@ -101,86 +108,75 @@ export class Torm {
       } catch {
         // not JSON
       }
-      throw new ProxyError(`torm ${method} ${path}: HTTP ${response.statusCode} ${error}`);
+      throw new ProxyError(`proxy provider ${method} ${path}: HTTP ${response.statusCode} ${error}`, response.statusCode);
     }
-    return response.json<T>();
+    return (response.text() ? response.json<T>() : undefined) as T;
   }
 
-  start(country: string | null, owner: string): Promise<TormInstance> {
-    return this.call('POST', '/instances', { country, strict: true, owner });
+  create(spec: ProxySpec, owner: string): Promise<ProvidedProxy> {
+    return this.call('POST', '/proxies', { type: spec.type, country: spec.country, owner }, 300_000);
   }
-  reload(slot: number): Promise<TormInstance> {
-    return this.call('POST', `/instances/${slot}/reload`);
+  renew(id: string | number): Promise<ProvidedProxy> {
+    return this.call('POST', `/proxies/${encodeURIComponent(id)}/renew`);
   }
-  stop(slot: number): Promise<TormInstance> {
-    return this.call('DELETE', `/instances/${slot}`);
+  remove(id: string | number): Promise<void> {
+    return this.call('DELETE', `/proxies/${encodeURIComponent(id)}`);
   }
-  list(): Promise<TormInstance[]> {
-    return this.call('GET', '/instances');
+  list(): Promise<ProvidedProxy[]> {
+    return this.call('GET', '/proxies');
   }
 }
 
-/** Tor allows a new identity at most every 10 seconds; one asked for sooner is delayed. */
-export const RENEW_INTERVAL_MS = 10_000;
-
-/** A Tor instance from torm, pinned to a country. */
-export class TorProxy implements Proxy {
+/** A proxy from the provider. */
+export class ProviderProxy implements Proxy {
   generation = 0;
-  private renewedAt = 0;
   private pending?: Promise<void>;
 
   private constructor(
-    private readonly torm: Torm,
-    private readonly country: string | null,
+    private readonly provider: ProxyProvider,
+    private readonly spec: ProxySpec,
     private readonly owner: string,
-    private instance: TormInstance
+    private proxy: ProvidedProxy
   ) {}
 
-  static async start(torm: Torm, country: string | null, owner: string): Promise<TorProxy> {
-    return new TorProxy(torm, country, owner, await torm.start(country, owner));
+  static async create(provider: ProxyProvider, spec: ProxySpec, owner: string): Promise<ProviderProxy> {
+    return new ProviderProxy(provider, spec, owner, await provider.create(spec, owner));
   }
 
-  get slot(): number {
-    if (this.instance.slot === undefined) throw new ProxyError(`torm returned an instance without a slot (pid ${this.instance.pid})`);
-    return this.instance.slot;
-  }
   get url(): string {
-    return `socks5h://${this.instance.socksAddr}:${this.instance.socksPort}`;
+    return this.proxy.url;
   }
   get label(): string {
-    return `tor ${this.country ?? 'any'} #${this.instance.slot ?? '?'}`;
+    return `${this.spec.type} ${this.spec.country ?? 'any'} #${this.proxy.id}`;
   }
 
   renew(): Promise<void> {
     return this.once(async () => {
-      const wait = this.renewedAt + RENEW_INTERVAL_MS - Date.now();
-      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-      await this.torm.reload(this.slot);
-      this.renewedAt = Date.now();
+      this.proxy = { ...this.proxy, ...(await this.provider.renew(this.proxy.id)) };
       this.generation++;
     });
   }
 
   replace(): Promise<void> {
     return this.once(async () => {
-      await this.torm.stop(this.slot).catch(() => undefined);
-      this.instance = await this.torm.start(this.country, this.owner);
-      this.renewedAt = Date.now();
+      await this.remove();
+      this.proxy = await this.provider.create(this.spec, this.owner);
       this.generation++;
     });
   }
 
-  /** Refused at the instance's own SOCKS port: tor is gone. The SOCKS client reports it in its message only. */
+  /** Refused at the proxy's own address: it is gone. A SOCKS client reports that in its message only. */
   isDown(error: any): boolean {
-    const port = this.instance.socksPort;
+    const url = new URL(this.proxy.url);
+    const port = Number(url.port) || (url.protocol === 'http:' ? 80 : 1080);
     return (
       (error?.code === 'ECONNREFUSED' && Number(error?.port) === port) ||
       new RegExp(`ECONNREFUSED \\S+:${port}\\b`).test(String(error?.message ?? ''))
     );
   }
 
-  stop(): Promise<unknown> {
-    return this.torm.stop(this.slot).catch(() => undefined);
+  remove(): Promise<unknown> {
+    return this.provider.remove(this.proxy.id).catch(() => undefined);
   }
 
   /** Runs one renewal or replacement at a time; callers arriving meanwhile share it. */
@@ -189,29 +185,29 @@ export class TorProxy implements Proxy {
   }
 }
 
-function requireTorm(): Torm {
-  const torm = Torm.fromEnv();
-  if (!torm) throw new ProxyError('This site fetches through Tor: set TORM_URL and TORM_TOKEN to a running torm');
-  return torm;
+function requireProvider(): ProxyProvider {
+  const provider = ProxyProvider.fromEnv();
+  if (!provider) throw new ProxyError('This site fetches through a proxy: set PROXY_PROVIDER_URL and PROXY_PROVIDER_TOKEN');
+  return provider;
 }
 
-/** One instance per `get`, stopped on `release`: a crawl process's own. */
+/** One proxy per `get`, removed on `release`: a crawl process's own. */
 export class LeasedProxies implements ProxySource {
   constructor(private readonly owner: string) {}
 
   async get(spec: ProxySpec): Promise<Proxy> {
-    return TorProxy.start(requireTorm(), spec.country, this.owner);
+    return ProviderProxy.create(requireProvider(), spec, this.owner);
   }
 
   async release(proxy: Proxy): Promise<void> {
-    if (proxy instanceof TorProxy) await proxy.stop();
+    if (proxy instanceof ProviderProxy) await proxy.remove();
   }
 }
 
-/** The tool server's instances: one per country, shared by every call, stopped after `idleMs` unused. */
+/** The tool server's proxies: one per type and country, shared by every call, removed after `idleMs` unused. */
 export class ProxyPool implements ProxySource {
   static readonly OWNER = 'jscrawl:tools';
-  private entries = new Map<string, { proxy: Promise<TorProxy>; usedAt: number }>();
+  private entries = new Map<string, { proxy: Promise<ProviderProxy>; usedAt: number }>();
   private sweeper: NodeJS.Timeout;
 
   constructor(private readonly idleMs = 15 * 60_000) {
@@ -223,9 +219,9 @@ export class ProxyPool implements ProxySource {
     const key = `${spec.type}:${spec.country ?? '*'}`;
     let entry = this.entries.get(key);
     if (!entry) {
-      entry = { proxy: TorProxy.start(requireTorm(), spec.country, ProxyPool.OWNER), usedAt: Date.now() };
+      entry = { proxy: ProviderProxy.create(requireProvider(), spec, ProxyPool.OWNER), usedAt: Date.now() };
       this.entries.set(key, entry);
-      // a failed start is not kept: the next call tries again
+      // a failed create is not kept: the next call tries again
       entry.proxy.catch(() => this.entries.delete(key));
     }
     entry.usedAt = Date.now();
@@ -234,16 +230,16 @@ export class ProxyPool implements ProxySource {
 
   async release(): Promise<void> {}
 
-  /** Stops the instances no call has used for `idleMs`. */
+  /** Removes the proxies no call has used for `idleMs`. */
   async sweep(now = Date.now()): Promise<void> {
     for (const [key, entry] of this.entries) {
       if (now - entry.usedAt < this.idleMs) continue;
       this.entries.delete(key);
-      await entry.proxy.then((proxy) => proxy.stop()).catch(() => undefined);
+      await entry.proxy.then((proxy) => proxy.remove()).catch(() => undefined);
     }
   }
 
-  /** Stops this pool's instances. */
+  /** Removes this pool's proxies. */
   async close(): Promise<void> {
     clearInterval(this.sweeper);
     await this.sweep(Infinity);
@@ -289,7 +285,7 @@ export async function viaProxy<T>(
   }
 }
 
-/** A crawl's proxy, shared by its crawlers: started with the first request, null when fetched directly. */
+/** A crawl's proxy, shared by its crawlers: taken with the first request, null when fetched directly. */
 export interface ProxyLease {
   lease?: Promise<Proxy | null>;
 }
@@ -309,18 +305,18 @@ export function useProxies(proxies: ProxySource): void {
   source = proxies;
 }
 
-/** Where this process's crawlers get their proxies; by default each its own instance. */
+/** Where this process's crawlers get their proxies; by default each its own. */
 export function proxies(): ProxySource {
   return (source ??= new LeasedProxies(processOwner()));
 }
 
-/** The owner torm records for this process's instances: its crawl run, else its pid. */
+/** The owner the provider records for this process's proxies: its crawl run, else its pid. */
 export function processOwner(): string {
   const run = process.env.JSCRAWL_RUN_ID;
   return run ? `jscrawl:run:${run}` : `jscrawl:pid:${process.pid}`;
 }
 
-const alive = (pid: number) => {
+export const processAlive = (pid: number) => {
   try {
     process.kill(pid, 0);
     return true;
@@ -329,25 +325,35 @@ const alive = (pid: number) => {
   }
 };
 
+/** Who holds a proxy, from the owner jscrawl gave it; null for one jscrawl did not create. */
+export type ProxyHolder = { run: number } | { pid: number } | { tools: true };
+
+export function proxyHolder(owner: string | null | undefined): ProxyHolder | null {
+  const run = /^jscrawl:run:(\d+)$/.exec(owner ?? '');
+  if (run) return { run: Number(run[1]) };
+  const pid = /^jscrawl:pid:(\d+)$/.exec(owner ?? '');
+  if (pid) return { pid: Number(pid[1]) };
+  return owner === ProxyPool.OWNER ? { tools: true } : null;
+}
+
 /**
- * Stops the instances jscrawl processes left behind: a process that is gone,
+ * Removes the proxies jscrawl processes left behind: a process that is gone,
  * with `runs` a crawl run not among them, and with `tools` every tool server's.
- * Without torm configured there is nothing to do. Returns how many it stopped.
+ * Without a provider there is nothing to do. Returns how many it removed.
  */
 export async function reapProxies({ runs, tools = false }: { runs?: Set<number>; tools?: boolean }): Promise<number> {
-  const torm = Torm.fromEnv();
-  if (!torm) return 0;
-  let stopped = 0;
-  for (const instance of await torm.list()) {
-    const owner = instance.owner ?? '';
-    const run = /^jscrawl:run:(\d+)$/.exec(owner);
-    const pid = /^jscrawl:pid:(\d+)$/.exec(owner);
+  const provider = ProxyProvider.fromEnv();
+  if (!provider) return 0;
+  let removed = 0;
+  for (const proxy of await provider.list()) {
+    const holder = proxyHolder(proxy.owner);
     const left =
-      (run && runs && !runs.has(Number(run[1]))) || (pid && !alive(Number(pid[1]))) || (tools && owner === ProxyPool.OWNER);
-    if (left && instance.slot !== undefined) {
-      await torm.stop(instance.slot).catch(() => undefined);
-      stopped++;
+      holder !== null &&
+      (('run' in holder && runs && !runs.has(holder.run)) || ('pid' in holder && !processAlive(holder.pid)) || ('tools' in holder && tools));
+    if (left) {
+      await provider.remove(proxy.id).catch(() => undefined);
+      removed++;
     }
   }
-  return stopped;
+  return removed;
 }

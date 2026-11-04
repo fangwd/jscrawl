@@ -136,7 +136,7 @@ export class Crawler<DB extends CoreDatabase = CoreDatabase> {
   /**
    * Sends one request at the site's pace. Through a proxy, the retries are
    * viaProxy's rather than yareq's: each failed attempt - a network error or a
-   * refusal an exit IP draws - first renews the route (a new Tor identity), or
+   * refusal an exit IP draws - first renews the route (a new exit), or
    * replaces the proxy when it is down.
    */
   private async send(url: string, client: HttpClient, options: RequestOptions, crawlDelay = 0): Promise<Response> {
