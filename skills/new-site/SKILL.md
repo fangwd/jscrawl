@@ -9,7 +9,8 @@ A site crawler is one file, `crawlers/<name>.ts`, where `<name>` is the site's
 kebab-case name (`example-shop`). It exports `site` (seed urls and crawl
 settings) and a default class extending the domain's crawler with one method
 per page type: `scrapeSeed`, and `scrape<Type>` for each type the domain
-declares. The domain's part of this skill, after the core's, names those types,
+declares. It may specialise a shared implementation under `crawlers/lib/`.
+The domain's part of this skill, after the core's, names those types,
 the template to start from, the API reference and what a page must yield.
 
 Scout first, then build in two passes, and write the file at the end of the first.
@@ -26,6 +27,13 @@ the site is far outside it, stop and report - or, if one section fits, propose
 the `allow`/`disallow` rules that keep the crawl to it and say what size they
 leave. One estimate is enough; counting every sitemap or collection is not
 scouting.
+
+During scouting, inspect the domain's documented profiles in `crawlers/lib/`.
+When the platform and template match a known profile, specialise it with the
+site's configuration and enrichment hooks. Verify the match on a listing and
+two distinct product pages; a platform name alone does not prove theme compatibility.
+Shared modules and their imports are typechecked, rule-checked and submitted
+with the site, and edits to them require rechecking every affected site.
 
 **Pass 1 - a first version.** Start with `jscrawl_pageProbe` on the url you
 were given ("Probe the live page"), then on one detail page. **Write
@@ -57,8 +65,9 @@ the site's code.
 - downloading or grepping the site's JavaScript bundles to reverse-engineer an
   API: if `jscrawl_pageProbe` does not list a call carrying the data, use a
   source it does list, embedded state, or the DOM;
-- reading `src/core`, `node_modules`, library sources or another site's crawler:
+- reading `src/core`, `node_modules`, dependency sources or another site's crawler:
   the API you need, input types included, is in the domain's API reference;
+  the documented profiles under `crawlers/lib/` are the reuse entry points;
 - repairing data by hand: data a scrape left wrong is fixed by fixing the
   crawler and scraping the page again; when a re-scrape cannot replace what an
   earlier one saved (rows stacking up), that is a core issue to report;

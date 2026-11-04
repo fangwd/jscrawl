@@ -4,6 +4,7 @@ import { relative, resolve } from 'path';
 import ts from 'typescript';
 import { Config } from './models';
 import { siteModulePath } from './sites';
+import { crawlerSources } from './crawler-sources';
 
 export interface CrawlerDiagnostic {
   file?: string;
@@ -17,7 +18,10 @@ export interface CrawlerDiagnostic {
 export function typecheckCrawler(config: Config, name: string, cwd: string) {
   const modulePath = siteModulePath(name, config);
   const file = ts.sys.fileExists(`${modulePath}.ts`) ? `${modulePath}.ts` : `${modulePath}.js`;
-  const sourceHash = createHash('sha256').update(readFileSync(file)).digest('hex');
+  const sources = crawlerSources(file);
+  const hash = createHash('sha256');
+  for (const source of sources) hash.update(relative(cwd, source)).update('\0').update(readFileSync(source)).update('\0');
+  const sourceHash = hash.digest('hex');
   const project = resolve(cwd, 'tsconfig.json');
   const loaded = ts.readConfigFile(project, ts.sys.readFile);
   const parsed = loaded.error ? undefined : ts.parseJsonConfigFileContent(loaded.config, ts.sys, cwd);
@@ -42,5 +46,5 @@ export function typecheckCrawler(config: Config, name: string, cwd: string) {
       message: ts.flattenDiagnosticMessageText(error.messageText, '\n'),
     };
   });
-  return { ok: diagnostics.length === 0, file: relative(cwd, file), sourceHash, diagnostics };
+  return { ok: diagnostics.length === 0, file: relative(cwd, file), sources: sources.map((source) => relative(cwd, source)), sourceHash, diagnostics };
 }

@@ -137,8 +137,11 @@ export async function scrapePreviews(
         const fixtures = domain().fixtures;
         const source = fixtures ? parse(response.text(), { baseUrl: response.url }) : undefined;
         await crawler.scrape(response, url);
+        // A handler may discover that a product-shaped URL serves a category.
+        // Apply domain page checks to the type actually scraped.
+        result.type = url.type;
         if (fixtures) {
-          result.check = fixtures.check({ entry: page, doc: source!, records: (table) => db.table(table).recordList });
+          result.check = fixtures.check({ entry: page, doc: source!, url, records: (table) => db.table(table).recordList });
           if (result.check.problems.length) {
             result.ok = false;
             result.error = `Incomplete extraction: ${result.check.problems.join('; ')}`;

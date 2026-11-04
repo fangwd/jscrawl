@@ -9,6 +9,7 @@ import { join, relative, resolve, sep } from 'path';
 import { promisify } from 'util';
 import { z } from 'zod';
 import { fixturePages } from './fixtures';
+import { crawlerSources } from './crawler-sources';
 
 const run = promisify(execFile);
 const REMOTE = 'origin';
@@ -40,7 +41,7 @@ export async function submissionFiles(dir: string, site: string): Promise<string
   } catch (err: any) {
     throw new Error(`${listing} must list the site's test pages before it is submitted: ${String(err.message ?? err).slice(0, 300)}`);
   }
-  const files = [`${site}.ts`, listing];
+  const files = [...crawlerSources(resolve(dir, `${site}.ts`)).map((file) => relative(dir, file)), listing];
   for (const page of pages) {
     const file = relative(dir, resolve(dir, fixtures, page.file));
     if (!file.startsWith(fixtures + sep)) throw new Error(`${listing}: ${page.file} is outside ${fixtures}/`);
