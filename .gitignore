@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Site crawlers are maintained in a separate repository.
+crawlers/
+
+# TypeScript development output and the package build.
+build/
+dist/
+
+# Runtime state: saved pages, images and crawl logs.
+data/
+
+# Large tool outputs saved by agent runs.
+.mason/
+
+# Local environment files; allow a shareable .env.example.
+.env
+.env.*
+!.env.example
+
+# Runtime logs, including Winston's root log file.
+*.log
+
+# Test and tooling artifacts
+coverage/
+.playwright-mcp/
+.claude/scheduled_tasks.lock
+
+# macOS
+.DS_Store

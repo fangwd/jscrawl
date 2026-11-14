@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationDir": null,
+    "sourceMap": false
+  },
+  "include": ["./src/core/**/*", "./src/mcp/tools.ts", "./src/web/**/*", "./src/entries/**/*"],
+  "exclude": ["./src/domains", "./build", "./dist", "./test", "./crawlers"]
+}
