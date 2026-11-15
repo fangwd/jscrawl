@@ -1,6 +1,6 @@
 {
   "name": "jscrawl",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A domain-configurable crawl engine with an HTTP API and MCP tools.",
   "homepage": "https://github.com/fangwd/jscrawl#readme",
   "bugs": "https://github.com/fangwd/jscrawl/issues",
