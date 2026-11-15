@@ -22,7 +22,7 @@ Other exports include `jscrawl-core/extract`, `jscrawl-core/mcp/tools`,
 
 ## Development
 
-Use Node.js 24 and PostgreSQL 17. Database-backed tests use `127.0.0.1:5434`,
+Use Node.js 26 (pinned in `.nvmrc`) and PostgreSQL 17. Database-backed tests use `127.0.0.1:5434`,
 database `jscrawl_test`, user `admin`, password `secret`:
 
 ```sh
